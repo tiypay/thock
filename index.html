@@ -1,0 +1,2698 @@
+<!doctype html>
+<html lang="fr"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<!-- equivalent Android : sans lui, "ajouter a l'ecran d'accueil" rouvre le jeu
+     DANS le navigateur, barre d'adresse comprise, ce qui pollue tout
+     enregistrement d'ecran. -->
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="ui/icone-192.png">
+<meta name="theme-color" content="#f7f2e9">
+<title>THOCK</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; overflow:hidden; background:#2a1810; overscroll-behavior:none; touch-action:none; }
+  body { font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; user-select:none; }
+  canvas { display:block; width:100vw; height:100vh; }
+
+  #hud { position:fixed; inset:0; pointer-events:none;
+         padding:calc(env(safe-area-inset-top,8px) + 10px) 14px 14px; }
+
+  /* Bandeau haut : pastilles ancrees, convention runner mobile */
+  #topbar { display:flex; align-items:flex-start; justify-content:space-between; }
+  .chip { display:inline-flex; align-items:center; gap:7px;
+          background:rgba(28,14,6,.62); backdrop-filter:blur(6px);
+          border:3px solid rgba(255,255,255,.26); border-radius:12px;
+          padding:6px 13px 6px 9px;
+          box-shadow:0 3px 3px rgba(0,0,0,.28), inset 0 2px 4px rgba(0,0,0,.3); }
+  .chip .ico { width:24px; height:24px; border-radius:50%; display:flex;
+               align-items:center; justify-content:center; font-size:13px; font-weight:900; }
+  .chip .val { font-size:21px; font-weight:900; color:#fff; letter-spacing:-.5px;
+               text-shadow:0 2px 0 rgba(0,0,0,.4); font-variant-numeric:tabular-nums; }
+  #coinIco { background:none; box-shadow:none; font-size:23px; line-height:1; width:26px; }
+  .purse.gem { border-color:#7fd4ff; }
+  .purse .c { background:none !important; font-size:21px; line-height:1; width:24px; }
+  #multChip { border-color:#ffd84d; }
+  #lives { display:flex; gap:4px; }
+  #lives i { width:19px; height:19px; display:block;
+             background:#ff4d6d; border:2px solid rgba(0,0,0,.35);
+             clip-path:polygon(50% 100%,4% 42%,4% 22%,22% 4%,50% 22%,78% 4%,96% 22%,96% 42%);
+             transition:opacity .2s, transform .2s; }
+  #lives i.off { background:#4a2b33; opacity:.55; transform:scale(.82); }
+  #multVal { color:#ffd84d; }
+
+  /* Mot en cours, centre sous le bandeau */
+  #wordWrap { text-align:center; margin-top:14px; }
+  #word { display:inline-flex; gap:6px; padding:7px 10px; border-radius:18px;
+          background:rgba(28,14,6,.42); backdrop-filter:blur(6px); }
+  #word span {
+    display:flex; align-items:center; justify-content:center;
+    width:30px; height:38px; border-radius:11px; font-size:19px; font-weight:900;
+    background:rgba(255,255,255,.14); color:rgba(255,255,255,.55);
+    box-shadow:inset 0 -2px 0 rgba(0,0,0,.18); transition:all .16s;
+  }
+  #word span.done { background:linear-gradient(180deg,#ffe06a,#f0ad13); color:#5a3a12;
+                    box-shadow:0 3px 0 #c9901a; }
+  #word span.now  { background:#fff; color:#3a1e10; transform:translateY(-4px) scale(1.12);
+                    box-shadow:0 4px 0 rgba(0,0,0,.28); }
+
+  /* SERIE : gros, au centre, c'est le signal fort du jeu */
+  /* Haut de l'ecran, pas le centre : il se superposait a la bille et on
+     perdait le fil du jeu. Il monte et disparait vite. */
+  #streak { position:absolute; top:20%; left:0; right:0; text-align:center;
+            font-size:46px; font-weight:900; letter-spacing:-2px; color:#fff;
+            opacity:0; text-shadow:0 4px 0 rgba(0,0,0,.4); pointer-events:none; }
+  #streak .sub { display:block; font-size:19px; letter-spacing:5px; color:#ff9ad4;
+                 margin-top:-6px; text-shadow:0 3px 0 rgba(0,0,0,.35); }
+  #streak.go { animation:envol .62s cubic-bezier(.2,1.4,.3,1) forwards; }
+
+  #combo { position:absolute; top:27%; left:0; right:0; text-align:center;
+           font-size:34px; font-weight:900; color:#ffd84d; opacity:0;
+           text-shadow:0 4px 0 rgba(0,0,0,.45); pointer-events:none; }
+  #combo.go { animation:envol .7s cubic-bezier(.2,1.4,.3,1) forwards; }
+  @keyframes pop {
+    0%{opacity:0;transform:scale(.55)} 20%{opacity:1;transform:scale(1.18)}
+    68%{opacity:1;transform:scale(1)} 100%{opacity:0;transform:scale(1.05) translateY(-30px)}
+  }
+  @keyframes envol {
+    0%  { opacity:0; transform:scale(.6)  translateY(14px) }
+    18% { opacity:1; transform:scale(1.14) translateY(0) }
+    45% { opacity:1; transform:scale(1)   translateY(-10px) }
+    100%{ opacity:0; transform:scale(.92) translateY(-92px) }
+  }
+
+  /* Barre de taille : epaisse, arrondie, avec label */
+  #sizewrap { position:absolute; left:20px; right:20px;
+              bottom:calc(18px + env(safe-area-inset-bottom,0px)); }
+  #sizelbl { font-size:10px; font-weight:900; letter-spacing:3px; color:rgba(255,255,255,.55);
+             margin-bottom:5px; text-align:center; }
+  #sizebar { height:14px; background:#3a2410; border-radius:9px; overflow:hidden;
+             border:3px solid rgba(255,255,255,.24);
+             box-shadow:0 2px 3px rgba(0,0,0,.3), inset 0 2px 3px rgba(0,0,0,.4); }
+  #sizefill { height:100%; width:0%; border-radius:5px; transition:width .12s;
+              background:linear-gradient(90deg,#7ee8a2,#ffd84d,#ff8fc7);
+              box-shadow:0 0 14px rgba(255,216,77,.6); }
+
+
+  /* ---------- ecrans meta ---------- */
+  .sheet { position:fixed; inset:0; z-index:12; display:none; flex-direction:column;
+           background:linear-gradient(180deg,#2a1f4f 0%,#5d3a54 45%,#3a2213 100%); }
+  .sheet.on { display:flex; }
+  /* space-between reparti sur quatre enfants collait le titre aux bourses.
+     Le titre pousse desormais les compteurs a droite, et l'entete se serre
+     un cran pour tenir deux bourses sur un ecran de 375 px. */
+  .sheet .hdr { display:flex; align-items:center; gap:10px;
+                padding:calc(env(safe-area-inset-top,8px) + 14px) 14px 12px; }
+  /* flex-shrink vaut 1 par defaut : avec deux bourses et un gros solde, la
+     ligne se serrait et c'est le bouton retour qui payait (52 -> 22 px de
+     large). Rien ne retrecit sauf le titre, qui se tronque proprement. */
+  .sheet .hdr > button { flex:0 0 auto; }
+  .sheet .hdr h2 { margin-right:auto; min-width:0; overflow:hidden;
+                   text-overflow:ellipsis; white-space:nowrap; }
+  .bourses { display:flex; align-items:center; justify-content:center; gap:9px;
+             flex:0 0 auto; }
+  .hdr .purse { padding:5px 11px 5px 8px; border-width:2px; gap:5px; }
+  .hdr .purse b { font-size:15px; }
+  .hdr .purse .c { font-size:18px; width:20px; }
+  .hdr .purse.gem .dia { width:18px; height:18px; vertical-align:-3px; }
+  .sheet h2 { color:#fff; font-size:23px; font-weight:900; letter-spacing:-.5px;
+              text-shadow:0 3px 0 rgba(0,0,0,.35); }
+  .sheet .body { flex:1; overflow-y:auto; padding:6px 16px 20px; -webkit-overflow-scrolling:touch; }
+
+  /* Boutons issus du kit. Les dimensions respectent le RATIO de l'image
+     (3.30 pour les longs, 1.00 pour les ronds) : sans ca les coins sculptes
+     se deforment et ca se voit immediatement. */
+  .rnd { border:none; background:none; font-weight:900; letter-spacing:.5px;
+         font-family:inherit; cursor:pointer; padding:0; }
+
+  .btnBig { display:block; width:min(290px,78vw); aspect-ratio:3.30;
+            margin:0 auto 10px; font-size:18px; color:#5c2f08;
+            background:url("ui/btn_orange_long.png") center/100% 100% no-repeat;
+            text-shadow:0 2px 0 rgba(255,236,190,.55); transition:transform .09s; }
+  .btnBig.alt { color:#f6d9b4; text-shadow:0 2px 0 rgba(0,0,0,.45);
+                background-image:url("ui/btn_brun_long.png"); }
+  .btnBig:active { transform:translateY(3px) scale(.985); }
+  .btnBig.petit { width:min(250px,70vw); font-size:15px; margin-bottom:7px; }
+
+  .btnIco { width:52px; height:52px; background:url("ui/ico_retour.png") center/contain no-repeat;
+            font-size:0; }
+  .btnIco.son { background-image:url("ui/ico_son.png"); }
+  .btnIco.croix { background-image:url("ui/ico_croix.png"); }
+  .btnIco.retour { width:58px; height:58px; }
+  .btnIco.retour { width:58px; height:58px; }
+
+  /* Bandeau de niveau. CARRE ARRONDI, pas pilule : c'est la signature des
+     interfaces de jeu mobile. Rayon ~10 px, contour epais, jamais de 100px. */
+  .lvl { display:inline-flex; align-items:center; }
+  /* etoile fournie en asset : plus de clip-path, on pose le PNG */
+  /* Centrage OPTIQUE et non geometrique. L'asset n'a aucune marge transparente,
+     mais l'etoile est lourde du bas — pointe fine en haut, deux jambes epaisses
+     en bas : son centre de masse tombe 9,6 px sous le centre de sa boite sur
+     220 px de haut, soit 4,4 %. Alignee au pixel sur la barre, elle se lit donc
+     comme pendante, et l'ombre portee vers le bas en rajoute. Le decalage
+     remonte la masse, pas la boite. */
+  .lvl .etoile { width:54px; height:56px; flex:0 0 54px; margin-right:-18px; z-index:2;
+                 position:relative; top:-4px;
+                 display:flex; align-items:center; justify-content:center;
+                 background:url("ui/etoile_bleue.png") center/contain no-repeat;
+                 filter:drop-shadow(0 3px 3px rgba(0,20,50,.45)); }
+  .lvl .etoile b { position:relative; z-index:3; color:#fff; font-size:21px; font-weight:900;
+                   margin-top:2px; text-shadow:0 2px 0 rgba(0,50,110,.85), 0 0 6px rgba(0,40,90,.6); }
+  .lvl .xpbar { width:150px; flex:0 0 150px; height:28px; border-radius:10px; overflow:hidden;
+                background:#123a63; border:3px solid #eaf6ff; padding:3px 4px 3px 16px;
+                box-shadow:0 3px 3px rgba(0,20,50,.35), inset 0 2px 4px rgba(0,0,0,.45); }
+  .lvl .xpfill { height:100%; border-radius:6px; transition:width .35s;
+                 background:linear-gradient(180deg,#8fdcff,#2b86e8);
+                 box-shadow:inset 0 -3px 0 rgba(0,45,100,.4), inset 0 2px 0 rgba(255,255,255,.45); }
+
+  .purse { display:inline-flex; align-items:center; gap:7px; background:rgba(38,20,8,.62);
+           border:3px solid #ffd84d; border-radius:12px; padding:6px 14px 6px 10px;
+           box-shadow:0 3px 3px rgba(0,0,0,.3), inset 0 2px 4px rgba(0,0,0,.35); }
+  .purse .c { width:22px; height:22px; border-radius:50%; display:flex; align-items:center;
+              justify-content:center; font-size:12px; font-weight:900; color:#6b4405;
+              background:linear-gradient(180deg,#ffe06a,#f0ad13); }
+  .purse b { color:#fff; font-size:17px; font-variant-numeric:tabular-nums; }
+
+  .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; margin-top:6px; }
+  .card { background:rgba(0,0,0,.26); border:2px solid rgba(255,255,255,.13);
+          border-radius:18px; padding:11px; text-align:center; }
+  .card.eq { border-color:#ffd84d; background:rgba(255,216,77,.13); }
+  .card .sw { height:62px; border-radius:13px; margin-bottom:8px; position:relative; overflow:hidden; }
+  /* socle : la bille est posee dessus, pas flottante dans une vignette */
+  .card.pack { position:relative; }
+  .card.pack.best { border-color:#ffd84d; background:rgba(255,216,77,.10); }
+  .card.pack .ruban { position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+                      background:linear-gradient(180deg,#ffe06a,#f0ad13); color:#5a3a12;
+                      font-size:9px; font-weight:900; letter-spacing:.5px;
+                      padding:3px 9px; border-radius:7px; white-space:nowrap;
+                      box-shadow:0 2px 0 rgba(0,0,0,.3); z-index:2; }
+  .card .sw.tresor { background:linear-gradient(180deg,#1b3352,#0b1a2e);
+                     display:flex; align-items:flex-end; justify-content:center; height:74px; }
+  .card .sw.tresor img { max-width:92%; max-height:100%; object-fit:contain;
+                         filter:drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
+
+  /* Rangee des diamants : trois paliers cote a cote, cales en bas, dont la
+     vignette grandit vers la droite. L'escalier fait lire la progression
+     avant meme que l'oeil arrive sur les prix. */
+  .grid.trio { grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
+  .grid.trio .card { padding:7px 5px 8px; border-radius:15px; }
+  /* Cadres identiques : c'est l'illustration qui grandit d'un palier a l'autre
+     (74 %, 88 %, 100 % du cadre). Faire grandir la vignette AUSSI multipliait
+     les deux effets et rendait le premier palier minuscule.
+     Le fond n'est plus une boite dure mais une lueur : le cadre bleu serrait
+     les gemmes et la marge morte les faisait paraitre petites. */
+  .grid.trio .card .sw.tresor { height:auto; aspect-ratio:1; margin-bottom:5px;
+                                background:radial-gradient(circle at 50% 58%,
+                                  rgba(96,214,240,.30) 0%, rgba(96,214,240,.10) 46%,
+                                  rgba(10,26,46,0) 72%); }
+  .grid.trio .card .sw.tresor img { max-width:100%; max-height:100%;
+                                    filter:drop-shadow(0 4px 6px rgba(0,0,0,.55)); }
+  .grid.trio .card .nm { font-size:13px; margin-bottom:4px; }
+  .grid.trio .card .act { font-size:11px; }
+  .grid.trio .card.best { box-shadow:0 0 0 1px rgba(255,216,77,.35),
+                                     0 6px 22px rgba(255,190,60,.22); }
+  .grid.trio .ruban { font-size:8px; padding:3px 7px; letter-spacing:.3px; }
+  .card .sw.socle { background:linear-gradient(180deg,#4a2c14 0%,#2e1a0a 100%); }
+  .card canvas.apercu { width:100%; height:100%; display:block; }
+  .card .nm { color:#fff; font-size:13px; font-weight:800; margin-bottom:4px; }
+  .card .act { display:block; width:100%; padding:8px 0; border-radius:10px; font-size:12px;
+               font-weight:900; border:none; font-family:inherit; }
+  /* aspect-ratio 3.30 = celui de l'image : a hauteur fixe on l'ecrasait
+     (ratio 7.9) et les bouts arrondis s'aplatissaient. */
+  .act { background:none; border:none; padding:0 0 4px; width:100%; aspect-ratio:3.30;
+         display:flex; align-items:center; justify-content:center;
+         background-size:100% 100%; background-repeat:no-repeat; font-size:13px; }
+  .act.buy { background-image:url("ui/btn_orange_long.png"); color:#5c2f08;
+             text-shadow:0 1px 0 rgba(255,236,190,.5); }
+  .act.use { background-image:url("ui/btn_brun_long.png"); color:#f6d9b4; }
+  .act.on  { background-image:url("ui/btn_orange_long.png"); color:#3f5c08;
+             filter:hue-rotate(58deg) saturate(1.25); }
+  .act.no  { background-image:url("ui/btn_brun_long.png"); color:rgba(255,214,160,.62);
+             filter:grayscale(.7) brightness(.62); }
+
+  .rowset { display:flex; align-items:center; justify-content:space-between;
+            background:rgba(0,0,0,.26); border:2px solid rgba(255,255,255,.13);
+            border-radius:16px; padding:14px 16px; margin-bottom:10px; }
+  .rowset span { color:#fff; font-weight:800; font-size:15px; }
+  .tgl { width:56px; height:31px; border-radius:100px; background:rgba(0,0,0,.45);
+         border:2px solid rgba(255,255,255,.2); position:relative; cursor:pointer; }
+  .tgl i { position:absolute; top:2px; left:2px; width:23px; height:23px; border-radius:50%;
+           background:#fff; transition:left .18s; }
+  .tgl.on { background:#3ec97a; } .tgl.on i { left:27px; }
+
+
+  /* ---------- ecran de chargement ---------- */
+  #load { position:fixed; inset:0; z-index:30; display:none;
+          background:#e9dfd0 center/cover no-repeat; }
+  #load.on { display:block; }
+  #load .voile { position:absolute; inset:0;
+                 background:linear-gradient(180deg, rgba(20,10,4,0) 40%, rgba(20,10,4,.72) 100%); }
+  #load .bas { position:absolute; left:26px; right:26px;
+               bottom:calc(46px + env(safe-area-inset-bottom,0px)); text-align:center; }
+  #load .astuce { color:#fff; font-size:14px; font-weight:700; margin-bottom:14px;
+                  text-shadow:0 2px 6px rgba(0,0,0,.7); min-height:38px; }
+  #load .piste { height:20px; border-radius:9px; overflow:hidden;
+                 background:rgba(0,0,0,.45); border:2px solid rgba(255,255,255,.28); }
+  #load .jauge { height:100%; width:0%; border-radius:5px; transition:width .18s linear;
+                 background:linear-gradient(90deg,#ffe06a,#f0ad13); }
+  #load .pct { color:#ffe6a8; font-size:12px; font-weight:900; letter-spacing:2px; margin-top:8px; }
+
+  .modale { position:fixed; inset:0; z-index:20; display:none;
+            align-items:center; justify-content:center; background:rgba(20,10,4,.72); }
+  .modale.on { display:flex; }
+  .modale .boite { background:linear-gradient(180deg,#5c3418,#3a2010);
+                   border:4px solid #d8a05a; border-radius:20px; padding:22px 20px 18px;
+                   width:min(300px,86vw); text-align:center;
+                   box-shadow:0 10px 0 rgba(0,0,0,.35); }
+  .modale h3 { color:#ffe0a8; font-size:20px; font-weight:900; letter-spacing:1px; margin-bottom:6px; }
+  .modale p { color:rgba(255,232,200,.72); font-size:13px; font-weight:600; margin-bottom:16px; }
+
+  .screen { position:fixed; inset:0; display:flex; flex-direction:column;
+            align-items:center; justify-content:center; z-index:10;
+            padding:14px 0; overflow-y:auto;
+            background:radial-gradient(circle at 50% 40%, rgba(250,245,236,.30) 0%,
+                       rgba(120,86,52,.62) 55%, rgba(58,36,16,.80) 100%);
+            backdrop-filter:blur(1.5px); }
+  .screen h1 { font-size:64px; font-weight:900; letter-spacing:-4px; color:#fff;
+               text-shadow:0 6px 0 rgba(0,0,0,.45), 0 0 30px rgba(0,0,0,.35); }
+  .screen p { color:rgba(255,255,255,.86); font-size:15px; margin-top:8px; font-weight:700;
+              text-shadow:0 2px 4px rgba(0,0,0,.5); }
+  .screen .big { font-size:74px; font-weight:900; color:#ffd84d; text-shadow:0 5px 0 rgba(0,0,0,.35); margin:4px 0; }
+  .screen .cta { margin-top:28px; padding:16px 40px; border-radius:14px; background:#ffd84d; color:#5a3a12;
+                 font-weight:900; font-size:16px; letter-spacing:1px; box-shadow:0 6px 0 #c9a52e;
+                 animation:pulse 1.8s ease-in-out infinite; }
+
+  /* panneau chocolat derriere le score final */
+  #overPanel { width:min(280px,74vw); aspect-ratio:1.86; margin-bottom:8px; flex:0 0 auto;
+               background:url("ui/panneau_choco.png") center/100% 100% no-repeat;
+               display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #overPanel .lbl { color:#f0c79a; font-size:12px; font-weight:900; letter-spacing:3px; }
+  #overPanel .big { font-size:46px; margin:0; }
+
+  /* Notation de fin. Trois etoiles de pierre, celle du milieu plus grande :
+     c'est la disposition standard, elle se lit sans legende. */
+  #note { display:flex; align-items:center; justify-content:center; gap:5px; margin-bottom:6px; flex:0 0 auto; }
+  /* Hauteur EXPLICITE et non auto : une image pas encore decodee n'a aucune
+     dimension intrinseque, donc height:auto la rendait a zero pixel de haut et
+     la rangee sautait a la premiere fin de partie. Le rapport 44/42 est celui
+     des deux PNG (180x172 et 180x173). */
+  #note img { width:44px; height:42px; filter:drop-shadow(0 3px 3px rgba(0,0,0,.4)); }
+  #note img.mid { width:58px; height:55px; margin:0 2px; }
+  /* L'arc porte sur l'enveloppe, pas sur l'image : l'animation d'apparition
+     finit sur transform:none et ecraserait une inclinaison posee sur l'img. */
+  #note span { display:block; line-height:0; }
+  #note span:first-child { transform:translateY(7px) rotate(-14deg); }
+  #note span:last-child  { transform:translateY(7px) rotate(14deg); }
+  #note img.on { animation:etoilePop .45s cubic-bezier(.2,1.6,.35,1) backwards; }
+  @keyframes etoilePop { 0%{opacity:0;transform:scale(.3) rotate(-25deg)} 100%{opacity:1;transform:none} }
+
+  /* barre de taille : piste chocolat du kit */
+  #sizebar { height:22px; border:none; border-radius:10px; overflow:hidden;
+             background:url("ui/btn_brun_long.png") center/100% 100% no-repeat; padding:5px 7px; }
+  #sizefill { height:12px; border-radius:6px; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+  .hidden { opacity:0; pointer-events:none; transition:opacity .3s; }
+  .rayon { color:rgba(255,255,255,.62); font-size:12px; letter-spacing:2.5px;
+           margin:20px 0 6px; }
+  .rayon:first-child { margin-top:10px; }
+
+  /* Banniere de rayon : une vignette a gauche, le compteur et le bouton a
+     droite. Sert au globe comme aux claviers — deux grilles entieres repliees
+     derriere une seule ligne chacune. */
+  .card.banniere { grid-column:1 / -1; display:flex; align-items:center; gap:12px; }
+  .card.banniere canvas, .card.banniere .vign { width:96px; height:96px; flex:0 0 96px; }
+  .card.banniere .vign { border-radius:14px; box-shadow:inset 0 0 0 2px rgba(0,0,0,.25); }
+  .card.banniere .vign.emo { display:flex; align-items:center; justify-content:center;
+                             font-size:44px; line-height:1;
+                             background:linear-gradient(180deg,#4a2c14 0%,#2e1a0a 100%); }
+  .card.banniere .txt { flex:1; min-width:0; }
+  .card.banniere .nm { margin:0 0 2px; text-align:left; }
+  .card.banniere .sub { color:rgba(255,214,160,.62); font-size:11px; font-weight:700;
+                        text-align:left; margin-bottom:6px; }
+  #gridClaviers { margin-top:9px; }
+
+  /* pastille diamant : meme dessin partout, le compteur et les paliers */
+  .dia { width:1.05em; height:1.05em; vertical-align:-.16em; margin-right:.12em; }
+  .purse.gem { padding-right:12px; }
+  .purse.gem .dia { width:21px; height:21px; vertical-align:-4px; margin-right:2px; }
+</style>
+</head>
+<body>
+<canvas id="c" width="750" height="1624"></canvas>
+
+<div id="hud">
+  <div id="topbar">
+    <div class="chip"><div class="ico" id="coinIco">🪙</div><div class="val" id="score" style="transform: scale(1.00533);">3300</div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
+      <div class="chip" id="multChip"><div class="val" id="mult" style="color: rgb(255, 122, 217);">x5</div></div>
+      <div id="lives"></div>
+    </div>
+  </div>
+  <div id="wordWrap"><div id="word"></div></div>
+  <div id="streak" class="go">x3<span class="sub">SERIE</span></div>
+  <div id="combo" class="go">JACKPOT +400</div>
+  <div id="sizewrap">
+    <div id="sizelbl">TAILLE</div>
+    <div id="sizebar"><div id="sizefill" style="width: 100%;"></div></div>
+  </div>
+</div>
+
+<audio id="musique" src="music/menu.webm" loop="" preload="auto"></audio>
+
+<div id="paiement" class="modale">
+  <div class="boite">
+    <img id="payImg" src="" alt="" style="width:110px;margin:0 auto 6px;display:block">
+    <h3 id="payTitre">Diamants</h3>
+    <p>Achat unique — pas d'abonnement.</p>
+    <div id="payPrix" style="color:#ffe0a8;font-size:26px;font-weight:900;margin-bottom:14px"></div>
+    <button class="rnd btnBig petit" id="payValider">PAYER</button>
+    <div id="payEtat" style="color:#8fe8b0;font-size:13px;font-weight:700;min-height:18px;margin:6px 0"></div>
+    <button class="rnd btnIco croix" id="payFermer" style="margin-top:2px"></button>
+  </div>
+</div>
+
+<div id="choix" class="modale">
+  <div class="boite">
+    <h3>REPARTIR ?</h3>
+    <p>Tu reprends la ou tu es tombe,<br>score conserve.</p>
+    <button class="rnd btnBig petit" id="cPub">📺 REGARDER UNE PUB</button>
+    <button class="rnd btnBig petit" id="cGems"><span id="icoGems"></span> <span id="prixGems">2</span> DIAMANTS</button>
+    <button class="rnd btnIco croix" id="cFermer" style="margin-top:4px"></button>
+  </div>
+</div>
+
+<div id="load">
+  <div class="voile"></div>
+  <div class="bas">
+    <div class="astuce" id="loadTip">Une grosse bille écrase plusieurs touches d'un coup : écoute l'accord.</div>
+    <div class="piste"><div class="jauge" id="loadBar" style="width: 100%;"></div></div>
+    <div class="pct" id="loadPct">100%</div>
+  </div>
+</div>
+
+<div id="start" class="screen">
+  <h1>THOCK</h1>
+  <p>glisse pour diriger. glisse vers le haut pour sauter.</p>
+  <div class="lvl" style="margin:16px 0 6px">
+    <div class="etoile"><b id="lvlNum">14</b></div>
+    <div class="xpbar"><div class="xpfill" id="lvlFill" style="width: 53.8095%;"></div></div>
+  </div>
+  <div class="bourses" style="margin:6px 0 20px">
+    <div class="purse gem"><span id="icoMenuGem"></span><b id="gemsMenu">0</b></div>
+    <div class="purse"><div class="c">🪙</div><b id="purseMenu">29357</b></div>
+  </div>
+  <button class="rnd btnBig" id="bPlay">JOUER</button>
+  <button class="rnd btnBig alt" id="bShop">BOUTIQUE</button>
+  <button class="rnd btnBig alt" id="bSet">RÉGLAGES</button>
+</div>
+
+<div id="shop" class="sheet">
+  <div class="hdr">
+    <button class="rnd btnIco" data-close="shop">←</button>
+    <h2>Boutique</h2>
+    <div class="bourses">
+      <div class="purse gem"><span id="icoPurse"></span><b id="gemsShop">0</b></div>
+      <div class="purse"><div class="c">🪙</div><b id="purseShop">29357</b></div>
+    </div>
+  </div>
+  <div class="body">
+    <h3 class="rayon">BILLES</h3>
+    <div class="grid" id="gridBalls"></div>
+    <h3 class="rayon">COLLECTIONS</h3>
+    <div class="grid" id="gridGlobe"></div>
+    <div class="grid" id="gridClaviers"></div>
+    <h3 class="rayon">GRATUIT</h3>
+    <div class="grid" id="gridGratuit"></div>
+    <h3 class="rayon">DIAMANTS</h3>
+    <div class="grid trio" id="gridGems"></div>
+  </div>
+</div>
+
+<div id="pays" class="sheet">
+  <div class="hdr">
+    <button class="rnd btnIco" data-close="pays">←</button>
+    <h2>Pays</h2>
+    <div class="bourses">
+      <div class="purse gem"><span id="icoPaysGem"></span><b id="gemsPays">0</b></div>
+      <div class="purse"><div class="c">🪙</div><b id="pursePays">0</b></div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="grid" id="gridPays"></div>
+  </div>
+</div>
+
+<div id="claviers" class="sheet">
+  <div class="hdr">
+    <button class="rnd btnIco" data-close="claviers">←</button>
+    <h2>Claviers</h2>
+    <div class="bourses">
+      <div class="purse gem"><span id="icoClavGem"></span><b id="gemsClav">0</b></div>
+      <div class="purse"><div class="c">🪙</div><b id="purseClav">0</b></div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="grid" id="gridKeys"></div>
+  </div>
+</div>
+
+<div id="settings" class="sheet">
+  <div class="hdr">
+    <button class="rnd btnIco" data-close="settings">←</button>
+    <h2>Réglages</h2><div style="width:42px"></div>
+  </div>
+  <div class="body">
+    <div class="rowset"><span>Son</span><div class="tgl" id="tSnd"><i></i></div></div>
+    <div class="rowset"><span>Vibration</span><div class="tgl on" id="tVib"><i></i></div></div>
+    <div class="rowset"><span>Meilleur score</span><span id="setBest" style="color:#ffd84d">27228</span></div>
+    <button class="rnd btnBig alt" id="bWipe" style="margin-top:22px">EFFACER MA PROGRESSION</button>
+  </div>
+</div>
+
+<div id="over" class="screen hidden" style="display:none">
+  <div id="note"></div>
+  <div id="overPanel">
+    <div class="lbl">TOMBÉ</div>
+    <div class="big" id="finalScore">286</div>
+  </div>
+  <div id="lvlUp" style="display: none; color: rgb(127, 212, 255); font-size: 19px; font-weight: 900; letter-spacing: 1px; margin-bottom: 8px; text-shadow: rgba(0, 0, 0, 0.4) 0px 3px 0px;">NIVEAU 14 !</div>
+  <div class="lvl" style="margin-bottom:12px">
+    <div class="etoile"><b id="lvlNumFin">14</b></div>
+    <div class="xpbar"><div class="xpfill" id="lvlFillFin" style="width: 53.8095%;"></div></div>
+  </div>
+  <p id="finalInfo">meilleur : 27228   ·   combo 95   ·   jackpots 0</p>
+  <div style="margin:16px 0 20px" class="purse"><div class="c">🪙</div><b id="earned">+143</b></div>
+  <button class="rnd btnBig" id="bRepartir">REPARTIR</button>
+  <button class="rnd btnBig alt" id="bAgain">REJOUER</button>
+  <button class="rnd btnIco retour" id="bMenu" style="margin-top:6px"></button>
+</div>
+
+<script>
+"use strict";
+
+/* ================================================================== AUDIO == */
+
+var AC = null, master = null, noiseBuf = null;
+var SAMPLES = null, samplesReady = false;
+var lastSoundAt = 0;
+
+function initAudio() {
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  master = AC.createGain(); master.gain.value = SAVE.snd ? 0.85 : 0;
+  master.connect(AC.destination);
+
+  var conv = AC.createConvolver();
+  var len = Math.floor(AC.sampleRate * 0.38), imp = AC.createBuffer(2, len, AC.sampleRate);
+  for (var ch = 0; ch < 2; ch++) {
+    var d = imp.getChannelData(ch);
+    for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.4);
+  }
+  conv.buffer = imp;
+  var wet = AC.createGain(); wet.gain.value = 0.15;
+  master.connect(wet); wet.connect(conv); conv.connect(AC.destination);
+
+  var nl = Math.floor(AC.sampleRate * 0.25);
+  noiseBuf = AC.createBuffer(1, nl, AC.sampleRate);
+  var nd = noiseBuf.getChannelData(0);
+  for (var j = 0; j < nl; j++) nd[j] = Math.random() * 2 - 1;
+
+  fetch("sounds/manifest.json", { cache:"no-store" })
+    .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+    .then(function (man) {
+      return Promise.all(man.press.map(function (f) {
+        return fetch("sounds/" + f).then(function (r) { return r.arrayBuffer(); })
+          .then(function (b) { return AC.decodeAudioData(b); });
+      })).then(function (bufs) { SAMPLES = { press: bufs }; samplesReady = bufs.length > 0; });
+    })
+    .catch(function () { samplesReady = false; });
+}
+
+function synthKey(rate, vel) {
+  var t = AC.currentTime, p = rate;
+  var n = AC.createBufferSource(); n.buffer = noiseBuf;
+  var bp = AC.createBiquadFilter();
+  bp.type = "bandpass"; bp.frequency.value = Math.min(1100 * p, 17000); bp.Q.value = 2.2;
+  var ng = AC.createGain();
+  ng.gain.setValueAtTime(0.3 * vel, t);
+  ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.028);
+  n.connect(bp); bp.connect(ng); ng.connect(master); n.start(t); n.stop(t + 0.05);
+
+  var o = AC.createOscillator(); o.type = "sine";
+  o.frequency.setValueAtTime(175 * p * 1.02, t);
+  o.frequency.exponentialRampToValueAtTime(175 * p * 0.78, t + 0.085);
+  var og = AC.createGain();
+  og.gain.setValueAtTime(0.0001, t);
+  og.gain.exponentialRampToValueAtTime(0.26 * vel, t + 0.005);
+  og.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+  o.connect(og); og.connect(master); o.start(t); o.stop(t + 0.18);
+}
+
+// `spread` decale les appuis simultanes de quelques ms : une grosse bille qui
+// couvre 3 touches doit sonner comme un accord, pas comme un seul choc empile.
+function playKey(rate, vel, spread) {
+  if (!AC) return;
+  var now = AC.currentTime;
+  var at = Math.max(now, lastSoundAt + 0.004) + (spread || 0);
+  lastSoundAt = at;
+  if (samplesReady) {
+    var b = SAMPLES.press[(Math.random() * SAMPLES.press.length) | 0];
+    var s = AC.createBufferSource(); s.buffer = b;
+    s.playbackRate.value = rate * (0.96 + Math.random() * 0.08);
+    var g = AC.createGain(); g.gain.value = vel;
+    s.connect(g); g.connect(master); s.start(at);
+  } else {
+    synthKey(rate * (0.97 + Math.random() * 0.06), vel);
+  }
+}
+
+function playChord(semis, wave, dur, amp) {
+  if (!AC) return;
+  var t = AC.currentTime;
+  for (var i = 0; i < semis.length; i++) {
+    var o = AC.createOscillator(), g = AC.createGain();
+    o.type = wave; o.frequency.value = 523.25 * Math.pow(2, semis[i] / 12);
+    var at = t + i * 0.045;
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(amp, at + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    o.connect(g); g.connect(master); o.start(at); o.stop(at + dur + 0.05);
+  }
+}
+
+function playHurt() {
+  if (!AC) return;
+  var t = AC.currentTime;
+  var o = AC.createOscillator(), g = AC.createGain();
+  o.type = "square";
+  o.frequency.setValueAtTime(190, t);
+  o.frequency.exponentialRampToValueAtTime(70, t + 0.22);
+  var lp = AC.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1100;
+  g.gain.setValueAtTime(0.001, t);
+  g.gain.exponentialRampToValueAtTime(0.19, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+  o.connect(lp); lp.connect(g); g.connect(master);
+  o.start(t); o.stop(t + 0.32);
+}
+
+// montee de pieces facon machine a sous
+function playCoins(n) {
+  if (!AC) return;
+  var t = AC.currentTime;
+  for (var i = 0; i < n; i++) {
+    var o = AC.createOscillator(), g = AC.createGain();
+    o.type = "triangle";
+    o.frequency.value = 880 * Math.pow(2, (i * 2) / 12);
+    var at = t + i * 0.055;
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(0.13, at + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
+    o.connect(g); g.connect(master); o.start(at); o.stop(at + 0.26);
+  }
+}
+
+/* CLIC BOIS. Synthetise plutot que sample : un coup sur du bois, c'est un
+   transitoire sec plus deux ou trois modes resonants qui s'eteignent vite.
+   Trois filtres passe-bande accordes suffisent, et ca ne coute aucun asset. */
+function playBois() {
+  if (!AC || !SAVE.snd) return;
+  var t = AC.currentTime;
+  var MODES = [ {f: 420, q: 9,  g: 0.34, d: 0.085},
+                {f: 780, q: 12, g: 0.20, d: 0.060},
+                {f: 1650, q: 8, g: 0.11, d: 0.035} ];
+  for (var i = 0; i < MODES.length; i++) {
+    var m = MODES[i];
+    var n = AC.createBufferSource(); n.buffer = noiseBuf;
+    n.playbackRate.value = 0.9 + Math.random() * 0.2;
+    var bp = AC.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = m.f * (0.97 + Math.random() * 0.06);
+    bp.Q.value = m.q;
+    var g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(m.g, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + m.d);
+    n.connect(bp); bp.connect(g); g.connect(master);
+    n.start(t); n.stop(t + m.d + 0.04);
+  }
+  // petit corps grave : le "poids" du panneau de bois
+  var o = AC.createOscillator(); o.type = "sine";
+  o.frequency.setValueAtTime(190, t);
+  o.frequency.exponentialRampToValueAtTime(120, t + 0.07);
+  var og = AC.createGain();
+  og.gain.setValueAtTime(0.0001, t);
+  og.gain.exponentialRampToValueAtTime(0.16, t + 0.004);
+  og.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+  o.connect(og); og.connect(master);
+  o.start(t); o.stop(t + 0.13);
+  if (SAVE.vib && navigator.vibrate) navigator.vibrate(8);
+}
+
+function playFall() {
+  if (!AC) return;
+  var t = AC.currentTime;
+  var o = AC.createOscillator(), g = AC.createGain();
+  o.type = "sawtooth";
+  o.frequency.setValueAtTime(420, t);
+  o.frequency.exponentialRampToValueAtTime(48, t + 0.85);
+  var lp = AC.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900;
+  g.gain.setValueAtTime(0.22, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.95);
+  o.connect(lp); lp.connect(g); g.connect(master);
+  o.start(t); o.stop(t + 1);
+}
+
+/* ================================================================ PALETTE ==
+   Style bonbon : caps pastel tres clairs, contour sombre marque, sol chocolat.
+============================================================================ */
+
+/* Damier deux tons : la parite (rangee + colonne) alterne les nuances, ce qui
+   se lit comme des BANDES DIAGONALES a l'ecran. C'est ce motif qui fait lire
+   "clavier" plutot que "grille de cubes". */
+/* Chaque mot a sa couleur. Ca decoupe la partie en "manches" lisibles et
+   evite que tout le jeu soit monochrome dore. */
+var WORD_COLORS = [
+  { h: 45,  s:100, l:60, css:"#ffcf1f", ink:"#5a4405" },   // or
+  { h:352,  s: 90, l:62, css:"#f9536f", ink:"#5c1020" },   // rubis
+  { h:203,  s: 95, l:60, css:"#39aef7", ink:"#08344f" },   // saphir
+  { h:150,  s: 72, l:52, css:"#2ecf88", ink:"#06381f" },   // emeraude
+  { h:283,  s: 80, l:68, css:"#b878f5", ink:"#33104f" }    // amethyste
+];
+var planColorIdx = 0;
+
+/* Boutique. Les pieces gagnees en partie s'accumulent entre les runs : c'est la
+   premiere raison de relancer autre que le score. */
+var BALLS = [
+  { id:"blanc",   nom:"Craie",     hue:40,  sat:10, prix:0    },
+  { id:"menthe",  nom:"Menthe",    hue:150, sat:44, prix:600  },
+  { id:"myrtille",nom:"Myrtille",  hue:255, sat:46, prix:1200 },
+  { id:"fraise",  nom:"Fraise",    hue:344, sat:48, prix:1800 },
+  { id:"citron",  nom:"Citron",    hue:52,  sat:52, prix:2600 },
+  { id:"lagon",   nom:"Lagon",     hue:190, sat:48, prix:3400 }
+];
+var KEYSETS = [
+  { id:"caramel", nom:"Caramel",   a:{h:33,s:46,l:82},  b:{h:25,s:36,l:67}, prix:0    },
+  { id:"reglisse",nom:"Réglisse",  a:{h:270,s:14,l:76}, b:{h:265,s:12,l:58},prix:900  },
+  { id:"pistache",nom:"Pistache",  a:{h:96,s:34,l:80},  b:{h:104,s:26,l:64},prix:1500 },
+  { id:"barbe",   nom:"Barbe à papa", a:{h:330,s:52,l:85}, b:{h:322,s:40,l:71}, prix:2200 },
+  { id:"givre",   nom:"Givre",     a:{h:200,s:30,l:88}, b:{h:206,s:22,l:72}, prix:3000 }
+];
+
+var SAVE = { purse:0, balls:["blanc"], keys:["caramel"], ball:"blanc", key:"caramel",
+             snd:true, vib:true, level:1, xp:0, gems:3,
+             jourCadeau:"", jourPubs:"", nbPubs:0 };
+
+/* Diamants : monnaie rare, gagnee aux paliers de niveau ou achetee avec des
+   pieces. Elle ne sert QU'A reprendre une partie, ce qui lui donne une valeur
+   lisible au lieu d'etre une deuxieme monnaie interchangeable. */
+/* Billes drapeau. Trois bandes verticales peintes sur la sphere : elles
+   defilent avec la rotation laterale, donc le drapeau tourne vraiment avec la
+   bille au lieu d'etre une texture collee. */
+var PAYS = [
+  { id:"fr", nom:"France",      b:["#0055A4","#FFFFFF","#EF4135"] },
+  { id:"it", nom:"Italie",      b:["#008C45","#F4F5F0","#CD212A"] },
+  { id:"be", nom:"Belgique",    b:["#2D2926","#FAE042","#ED2939"] },
+  { id:"de", nom:"Allemagne",   b:["#000000","#DD0000","#FFCE00"], h:true },
+  { id:"es", nom:"Espagne",     b:["#AA151B","#F1BF00","#AA151B"], h:true },
+  { id:"pt", nom:"Portugal",    b:["#046A38","#046A38","#DA291C"] },
+  { id:"nl", nom:"Pays-Bas",    b:["#AE1C28","#FFFFFF","#21468B"], h:true },
+  { id:"ie", nom:"Irlande",     b:["#169B62","#FFFFFF","#FF883E"] },
+  { id:"ma", nom:"Maroc",       b:["#C1272D","#006233","#C1272D"] },
+  { id:"dz", nom:"Algérie",     b:["#006233","#FFFFFF","#D21034"] },
+  { id:"sn", nom:"Sénégal",     b:["#00853F","#FDEF42","#E31B23"] },
+  { id:"ci", nom:"Côte d'Ivoire", b:["#F77F00","#FFFFFF","#009E60"] },
+  { id:"br", nom:"Brésil",      b:["#009C3B","#FFDF00","#002776"] },
+  { id:"ar", nom:"Argentine",   b:["#74ACDF","#FFFFFF","#74ACDF"], h:true },
+  { id:"jp", nom:"Japon",       b:["#FFFFFF","#BC002D","#FFFFFF"] },
+  { id:"kr", nom:"Corée",       b:["#FFFFFF","#CD2E3A","#0047A0"] },
+  { id:"ca", nom:"Canada",      b:["#D80621","#FFFFFF","#D80621"] },
+  { id:"us", nom:"États-Unis",  b:["#3C3B6E","#FFFFFF","#B22234"], h:true },
+  { id:"gb", nom:"Royaume-Uni", b:["#012169","#FFFFFF","#C8102E"] },
+  { id:"se", nom:"Suède",       b:["#006AA7","#FECC02","#006AA7"] },
+  { id:"ch", nom:"Suisse",      b:["#DA291C","#FFFFFF","#DA291C"] },
+  { id:"mx", nom:"Mexique",     b:["#006847","#FFFFFF","#CE1126"] }
+];
+var PRIX_PAYS = 900;
+
+/* Quatre paliers en argent reel. Le prix par diamant baisse quand le pack
+   grossit : c'est ce qui pousse vers les gros paquets. */
+var PACKS = [
+  { id:"p1", n:12,  img:"gem_s", eur:"1,99 €",  best:false },
+  { id:"p2", n:110, img:"gem_m", eur:"9,99 €",  best:true  },
+  { id:"p3", n:300, img:"gem_l", eur:"19,99 €", best:false }
+];
+
+/* Palier d'XP : croissance lineaire plutot qu'exponentielle. Une courbe trop
+   raide fait decrocher au niveau 8-10, or ici le niveau sert surtout a donner
+   un horizon, pas a verrouiller du contenu. */
+function xpRequis(n) { return 400 + (n - 1) * 260; }
+
+function gagnerXp(pts) {
+  SAVE.xp += pts;
+  var montees = 0;
+  while (SAVE.xp >= xpRequis(SAVE.level)) {
+    SAVE.xp -= xpRequis(SAVE.level);
+    SAVE.level++;
+    montees++;
+    SAVE.purse += 150 * SAVE.level;      // recompense de palier
+    SAVE.gems += 2;
+  }
+  persist();
+  return montees;
+}
+function loadSave() {
+  try {
+    var raw = localStorage.getItem("thock_save");
+    if (raw) { var o = JSON.parse(raw); for (var k in o) if (k in SAVE) SAVE[k] = o[k]; }
+  } catch (e) {}
+}
+function persist() { try { localStorage.setItem("thock_save", JSON.stringify(SAVE)); } catch (e) {} }
+loadSave();
+
+function billeCourante() {
+  for (var i = 0; i < BALLS.length; i++) if (BALLS[i].id === SAVE.ball) return BALLS[i];
+  for (var j = 0; j < PAYS.length; j++) if (PAYS[j].id === SAVE.ball) return { flag: PAYS[j].b, h: PAYS[j].h };
+  return BALLS[0];
+}
+
+function ballHue() {
+  for (var i = 0; i < BALLS.length; i++) if (BALLS[i].id === SAVE.ball) return BALLS[i].hue;
+  return 18;
+}
+function keySet() {
+  for (var i = 0; i < KEYSETS.length; i++) if (KEYSETS[i].id === SAVE.key) return KEYSETS[i];
+  return KEYSETS[0];
+}
+
+var TONE_A = { h: 33, s: 46, l: 82 };   // caramel clair
+var TONE_B = { h: 25, s: 36, l: 67 };   // caramel fonce
+var INK = "rgba(58,30,16,.85)";     // contour chocolat
+
+/* ================================================================== MONDE == */
+
+var cv = document.getElementById("c"), ctx = cv.getContext("2d");
+var W = 0, H = 0, DPR = 1;
+
+var COLS = 9;                        // champ dense facon vrai clavier
+var GAP = 0.07;                      // touches jointives
+var KEY_W = 1.0;
+// Une touche carree en 3D parait RECTANGULAIRE a l'ecran : la profondeur est
+// ecrasee par l'angle de la camera (~sin 51deg = 0.78). On l'allonge en z de
+// 1/0.78 pour qu'elle se projette carree.
+var KEY_D = 1.00;                    // ajuste par mesure : plateau carre a l'ecran
+var PITCH_X = KEY_W + GAP, PITCH_Z = KEY_D + GAP;
+var CAP_H = 0.60, TAPER = 0.07, TRAVEL = 0.52;
+var FLOOR_Y = -1.9;                  // chocolat remonte : le clavier respire moins dans le vide
+var VIEW_ROWS = 11, TRAIL_ROWS = 3;   // 3 rangees derriere : le clavier doit remplir le bas du cadre
+var CAM_BACK = 4.8, CAM_UP = 7.8;
+var camUp = CAM_UP;                  // leger flottement vertical
+var FOCAL = 0, HORIZON = 0, S0 = 0;
+
+function resize() {
+  var w = window.innerWidth || document.documentElement.clientWidth || 0;
+  var h = window.innerHeight || document.documentElement.clientHeight || 0;
+  if (w < 1 || h < 1) return false;
+  DPR = Math.min(window.devicePixelRatio || 1, 2.5);
+  W = w; H = h;
+  cv.width = W * DPR; cv.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  S0 = Math.min(W * 1.20 / (COLS * PITCH_X), H * 0.155);
+  FOCAL = S0 * CAM_BACK;
+  HORIZON = H * 0.12;          // camera plongeante : peu de ciel, plateau plein cadre
+  return true;
+}
+window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", resize);
+document.addEventListener("visibilitychange", resize);
+resize();
+
+var cam = { x:0, z:-CAM_BACK };
+
+/* Relief. Somme de deux sinus de periodes incommensurables : les bosses ne se
+   repetent jamais a l'identique, sans avoir a stocker un terrain. */
+function elevAtZ(z) {
+  var u = z / PITCH_Z;
+  // Periodes courtes (~24 et ~60 rangees) : avec seulement 11 rangees visibles,
+  // des collines longues paraissaient parfaitement plates.
+  return Math.sin(u * 0.26) * 1.05 + Math.sin(u * 0.105 + 1.7) * 1.85;
+}
+function rowElev(i) { return elevAtZ(i * PITCH_Z); }
+// pente locale : >0 ca monte, <0 ca descend
+function slopeAtZ(z) { return (elevAtZ(z + 0.6) - elevAtZ(z - 0.6)) / 1.2; }
+
+function colX(c) { return (c - (COLS - 1) / 2) * PITCH_X; }
+function rowZ(r) { return r * PITCH_Z; }
+
+function proj(x, y, z) {
+  var dz = z - cam.z;
+  if (dz < 0.45) dz = 0.45;
+  var s = FOCAL / dz;
+  return [W * 0.5 + (x - cam.x) * s, HORIZON + (camUp - y) * s, s];
+}
+
+function quad(a, b, c, d, fill, stroke, lw) {
+  ctx.beginPath();
+  ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
+  ctx.lineTo(c[0], c[1]); ctx.lineTo(d[0], d[1]);
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+}
+
+// Quadrilatere a coins arrondis : les angles vifs font "prototype",
+// c'est le detail qui separe le rendu brut d'un rendu de jeu mobile.
+function roundQuad(pts, k, fill, stroke, lw) {
+  ctx.beginPath();
+  for (var i = 0; i < 4; i++) {
+    var cur = pts[i], nxt = pts[(i + 1) % 4], prv = pts[(i + 3) % 4];
+    var ax = cur[0] + (prv[0] - cur[0]) * k, ay = cur[1] + (prv[1] - cur[1]) * k;
+    var bx = cur[0] + (nxt[0] - cur[0]) * k, by = cur[1] + (nxt[1] - cur[1]) * k;
+    if (i === 0) ctx.moveTo(ax, ay); else ctx.lineTo(ax, ay);
+    ctx.quadraticCurveTo(cur[0], cur[1], bx, by);
+  }
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.4; ctx.stroke(); }
+}
+
+/* ============================================================== NIVEAU ===
+   Un chemin continu est trace rangee par rangee (il derive de -1/0/+1), donc
+   il existe TOUJOURS une trajectoire jouable. Les trous se creusent autour.
+============================================================================ */
+
+var WORDS = ["CHAT","LUNE","POMME","ARBRE","FLEUR","CHIEN","SOLEIL","MAISON","OISEAU","NUAGE",
+             "ETOILE","RENARD","CERISE","JARDIN","BATEAU","ORANGE","TIGRE","CHEVAL","BANANE","FUSEE",
+             "DRAGON","LAPIN","VIOLET","MIROIR","PLUME","RIVIERE","MONTAGNE","PAPILLON","LICORNE"];
+var ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+var rows = [], lowestRow = 0, pathCol = 3;
+var wordBag = [], planWord = "", planPos = 0;
+
+function nextWord() {
+  if (!wordBag.length) {
+    wordBag = WORDS.slice();
+    for (var i = wordBag.length - 1; i > 0; i--) {
+      var j = (Math.random() * (i + 1)) | 0, t = wordBag[i];
+      wordBag[i] = wordBag[j]; wordBag[j] = t;
+    }
+  }
+  planWord = wordBag.pop(); planPos = 0;
+  planColorIdx = (planColorIdx + 1) % WORD_COLORS.length;
+}
+
+function newKey(row, col, letter, bonus) {
+  var ks = keySet();
+  var p = ((row + col) % 2) ? ks.a : ks.b;
+  return { row:row, col:col, letter:letter, bonus:!!bonus,
+           h:p.h, s:p.s, l:p.l, press:0, pv:0, hit:false };
+}
+
+function makeRow(index) {
+  var slots = new Array(COLS), c;
+  for (c = 0; c < COLS; c++) slots[c] = null;
+
+  if (index <= 16) {                                  // depart : clavier plein, aucun trou
+    for (c = 0; c < COLS; c++) slots[c] = newKey(index, c, ALPHA.charAt((Math.random()*26)|0));
+    return { slots:slots, need:"", pos:0, word:"" };
+  }
+
+  pathCol += [-1, 0, 0, 1][(Math.random() * 4) | 0];
+  pathCol = Math.max(0, Math.min(COLS - 1, pathCol));
+
+  // Le chemin est UNE SEULE plage contigue. Des touches isolees creeraient des
+  // ilots sans issue : le joueur atterrit dessus et n'a plus aucun coup jouable.
+  // La plage part de la LARGEUR TOTALE (clavier plein, aucun trou) et se
+  // resserre avec la progression : la difficulte creuse le vide petit a petit.
+  var diff = Math.min(1, Math.max(0, (index - 16) / 320));
+  var width = Math.max(3, Math.round(COLS - diff * (COLS - 3)));
+  var lo = pathCol - (width >> 1), hi = lo + width - 1;
+
+  var extra = 0.30 - diff * 0.26;
+  while (Math.random() < extra && hi - lo < COLS - 1) {
+    if (Math.random() < 0.5) lo--; else hi++;
+  }
+  // aux bords on DECALE la plage au lieu de la rogner : sinon on obtient des
+  // rangees d'une seule touche, injouables a vitesse elevee
+  if (lo < 0) { hi -= lo; lo = 0; }
+  if (hi > COLS - 1) { lo -= hi - (COLS - 1); hi = COLS - 1; }
+  lo = Math.max(0, lo); hi = Math.min(COLS - 1, hi);
+  pathCol = Math.max(lo, Math.min(hi, pathCol));
+
+  for (var cc = lo; cc <= hi; cc++) {
+    slots[cc] = newKey(index, cc, ALPHA.charAt((Math.random() * 26) | 0));
+  }
+
+  // lettre du mot en cours, posee sur le chemin -> elle vaut gros
+  if (planPos >= planWord.length) nextWord();
+  var need = planWord.charAt(planPos);
+  var word = planWord, pos = planPos;
+  if (index % 2 === 0) {
+    slots[pathCol].letter = need;
+    slots[pathCol].bonus = true;
+    slots[pathCol].ci = planColorIdx;
+    planPos++;
+  }
+  return { slots:slots, need:need, pos:pos, word:word, ci:planColorIdx };
+}
+
+/* ===================================================== MOTIFS DE BOMBES ===
+   Avant : une bombe tous les quatre rangs, colonne tiree au hasard sur toute
+   la largeur. Deux defauts mesurables. La colonne pouvait tomber HORS du
+   chemin, donc pres d'une bombe sur deux ne menacait rien. Et la cadence fixe
+   ne se lit pas : le joueur subit sans jamais anticiper.
+   Desormais on enchaine des figures courtes — solo, mur, escalier, couloir,
+   pince — posees dans le chemin, chacune avec au moins une colonne sure a
+   chaque rangee, et separees par des rangees vides. Sans repos, aucune figure
+   ne se detache du bruit. */
+var motif = null, reposBombes = 8;
+
+function plageLibre(r) {
+  var lo = -1, hi = -1;
+  for (var c = 0; c < COLS; c++) if (r.slots[c]) { if (lo < 0) lo = c; hi = c; }
+  return [lo, hi];
+}
+
+function poserBombe(idx, col) {
+  bombs.push({ x: colX(col), z: rowZ(idx), r: 0.36,
+               ph: Math.random() * 6.28, alive: true, boom: 0 });
+}
+
+function choisirMotif(idx, lo, hi) {
+  var w = hi - lo + 1;
+  var d = Math.min(1, Math.max(0, (idx - 20) / 240));
+  var opts = ["solo", "solo"];                    // le solo reste le fond de sauce
+  if (w >= 4) opts.push("escalier");
+  if (w >= 5) opts.push("mur");
+  if (w >= 5 && d > 0.25) opts.push("couloir");
+  if (w >= 6 && d > 0.45) opts.push("pince");
+  var m = { t: opts[(Math.random() * opts.length) | 0], pas: 0 };
+  if (m.t === "solo")     { m.n = 1; m.col = lo + ((Math.random() * w) | 0); }
+  else if (m.t === "mur") { m.n = 1; m.trou = lo + ((Math.random() * w) | 0); }
+  else if (m.t === "escalier") {
+    m.n = 4 + ((Math.random() * 3) | 0);
+    m.dir = Math.random() < 0.5 ? 1 : -1;
+    m.col = m.dir > 0 ? lo : hi;
+  } else if (m.t === "couloir") {
+    m.n = 5 + ((Math.random() * 3) | 0);
+    m.voie = lo + 1 + ((Math.random() * Math.max(1, w - 2)) | 0);
+  } else {                                        // pince
+    m.n = Math.min(5, (w - 1) >> 1) + 2;
+    m.g = lo; m.d = hi;
+  }
+  return m;
+}
+
+function bombesDeRangee(idx, r) {
+  if (idx <= 16) return;
+  var pl = plageLibre(r), lo = pl[0], hi = pl[1];
+  // sous trois colonnes, poser quoi que ce soit revient a fermer le passage
+  if (lo < 0 || hi - lo < 2) return;
+
+  if (reposBombes > 0) { reposBombes--; return; }
+  if (!motif) motif = choisirMotif(idx, lo, hi);
+  var m = motif, k = m.pas, c;
+
+  if (m.t === "solo") {
+    poserBombe(idx, Math.max(lo, Math.min(hi, m.col)));
+
+  } else if (m.t === "mur") {
+    var trou = Math.max(lo, Math.min(hi, m.trou));
+    for (c = lo; c <= hi; c++) if (c !== trou) poserBombe(idx, c);
+
+  } else if (m.t === "escalier") {
+    poserBombe(idx, Math.max(lo, Math.min(hi, m.col + m.dir * k)));
+
+  } else if (m.t === "couloir") {
+    var v = Math.max(lo + 1, Math.min(hi - 1, m.voie));
+    for (c = lo; c <= hi; c++) if (Math.abs(c - v) >= 2) poserBombe(idx, c);
+
+  } else {                                        // pince : deux bombes qui convergent
+    var g = m.g + k, dr = m.d - k;
+    if (dr - g >= 2) { poserBombe(idx, Math.max(lo, g)); poserBombe(idx, Math.min(hi, dr)); }
+  }
+
+  m.pas++;
+  if (m.pas >= m.n) {
+    motif = null;
+    var d2 = Math.min(1, Math.max(0, (idx - 20) / 240));
+    reposBombes = Math.round(5 - d2 * 2) + ((Math.random() * 3) | 0);
+  }
+}
+
+function ensureRows(upTo) {
+  while (lowestRow + rows.length <= upTo) {
+    var idx = lowestRow + rows.length;
+    var r = makeRow(idx);
+    rows.push(r);
+    bombesDeRangee(idx, r);
+  }
+}
+
+function rowAt(i) { var k = i - lowestRow; return (k < 0 || k >= rows.length) ? null : rows[k]; }
+function keyAt(i, c) { var r = rowAt(i); return r ? r.slots[c] : null; }
+
+/* ================================================================= ETAT === */
+
+var ball, score = 0, scoreShown = 0, best = 0, combo = 0, bestCombo = 0, wordsDone = 0;
+var pops = [], parts = [], mobs = [], flyers = [], bombs = [], playing = false, dead = false, shake = 0, flash = 0;
+var steerX = null, speed = 0, dist = 0;
+var hotStreak = 0, jackpots = 0, redFlash = 0;
+var revives = 0;                 // nombre de reprises deja utilisees dans la partie
+function prixGems() { return 2 * Math.pow(2, revives); }   // 2, 4, 8 diamants
+var lives = 3, invuln = 0;   // invuln evite de perdre 3 vies sur un seul amas
+
+var boost = 0, jy = 0, jvy = 0, jumping = false, slopeSpd = 0, camExtra = 0;
+var demo = false;
+
+var R_MIN = 0.30, R_MAX = 0.86;
+
+var scoreEl = document.getElementById("score"), multEl = document.getElementById("mult");
+var wordEl = document.getElementById("word"), comboEl = document.getElementById("combo");
+var fillEl = document.getElementById("sizefill");
+var streakEl = document.getElementById("streak");
+var livesEl = document.getElementById("lives");
+var startEl = document.getElementById("start"), overEl = document.getElementById("over");
+
+function multiplier() { return 1 + Math.floor((ball.r - R_MIN) / (R_MAX - R_MIN) * 4.999); }
+
+function syncHud() {
+  var lh = "";
+  for (var L2 = 0; L2 < 3; L2++) lh += '<i class="' + (L2 < lives ? "" : "off") + '"></i>';
+  livesEl.innerHTML = lh;
+  multEl.textContent = "x" + multiplier();
+  multEl.style.color = hotStreak >= 2 ? "#ff7ad9" : "#ffd84d";
+  fillEl.style.width = ((ball.r - R_MIN) / (R_MAX - R_MIN) * 100) + "%";
+  var r = rowAt(Math.floor(ball.z / PITCH_Z) + 1);
+  var w = r && r.word ? r : null;
+  if (!w) { wordEl.innerHTML = ""; return; }
+  var wc = WORD_COLORS[w.ci || 0];
+  var html = "";
+  for (var i = 0; i < w.word.length; i++) {
+    var cls = i < w.pos ? "done" : (i === w.pos ? "now" : "");
+    var st = (cls === "done")
+      ? ' style="background:' + wc.css + ';color:' + wc.ink + ';box-shadow:0 3px 0 rgba(0,0,0,.32)"'
+      : (cls === "now" ? ' style="background:#fff;color:' + wc.ink + '"' : "");
+    html += '<span class="' + cls + '"' + st + '>' + w.word.charAt(i) + "</span>";
+  }
+  wordEl.innerHTML = html;
+}
+
+function reset() {
+  rows = []; lowestRow = 0; pathCol = 3;
+  wordBag = []; planWord = ""; planPos = 0;
+  ensureRows(VIEW_ROWS + 8);
+  ball = { x:0, z:0, r:R_MIN, y:0, vy:0, rx:0, rz:0, squash:0, hue:0, grace:0 };
+  cam.x = 0; cam.z = -CAM_BACK;
+  score = 0; scoreShown = 0; combo = 0; bestCombo = 0; wordsDone = 0;
+  hotStreak = 0; jackpots = 0; redFlash = 0;
+  lives = 3; invuln = 0; revives = 0;
+  boost = 0; jy = 0; jvy = 0; jumping = false; slopeSpd = 0; camExtra = 0;
+  pops = []; parts = []; mobs = []; flyers = []; bombs = []; shake = 0; flash = 0;
+  motif = null; reposBombes = 8;
+  scoreEl.textContent = "0";
+  speed = 0.054; dist = 0; steerX = null;
+  dead = false;
+  best = parseInt(localStorage.getItem("thock_best") || "0", 10) || 0;
+  syncHud();
+}
+
+function pop(x, y, z, text, hue, big) {
+  pops.push({ x:x, y:y, z:z, text:text, hue:hue, life:1, big:!!big });
+  if (pops.length > 12) pops.shift();
+}
+
+/* Le bonz ramasse ne s'ajoute pas au score tout de suite : il DECOLLE et vole
+   jusqu'au compteur, qui ne monte qu'a son arrivee. Le lien cause->effet devient
+   visible, c'est ce qui rend un ramassage satisfaisant. */
+function spawnFlyer(wx, wy, wz, val, fcss, fink) {
+  var p = proj(wx, wy, wz);
+  flyers.push({ x0: p[0], y0: p[1], t: 0, val: val, s0: p[2], css: fcss || "#ffcf1f", ink: fink || "#5a4405" });
+  if (flyers.length > 14) flyers.shift();
+}
+
+function updateFlyers(dt) {
+  var TX = W * 0.5, TY = 58;
+  for (var i = flyers.length - 1; i >= 0; i--) {
+    var f = flyers[i];
+    f.t += 0.026 * dt;
+    if (f.t >= 1) {
+      score += f.val;
+      flash = Math.max(flash, 0.32);
+      playCoins(1);
+      flyers.splice(i, 1);
+      syncHud();
+      continue;
+    }
+    var e = f.t * f.t * (3 - 2 * f.t);
+    var cx = (f.x0 + TX) / 2, cy = Math.min(f.y0, TY) - H * 0.14;
+    var u = 1 - e;
+    var x = u * u * f.x0 + 2 * u * e * cx + e * e * TX;
+    var y = u * u * f.y0 + 2 * u * e * cy + e * e * TY;
+    var sc = (1 - e * 0.55) * Math.min(1.6, Math.max(0.5, f.s0 / 55));
+    var fs = 20 * sc;
+
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, (1 - f.t) * 2.6);
+    ctx.beginPath(); ctx.arc(x, y, fs * 0.82, 0, Math.PI * 2);
+    ctx.fillStyle = f.css; ctx.fill();
+    ctx.lineWidth = Math.max(1.5, fs * 0.14);
+    ctx.strokeStyle = "rgba(96,52,4,.9)"; ctx.stroke();
+    ctx.font = "900 " + Math.round(fs * 0.78) + "px -apple-system,Segoe UI,Roboto,sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = f.ink;
+    ctx.fillText("+" + f.val, x, y + fs * 0.05);
+    ctx.restore();
+  }
+}
+
+function spawnParts(x, z, n, hue, sp) {
+  for (var i = 0; i < n; i++) {
+    var a = Math.random() * Math.PI * 2, v = sp * (0.3 + Math.random());
+    parts.push({ x:x, y:CAP_H + 0.1, z:z,
+                 vx:Math.cos(a) * v, vy:0.04 + Math.random() * 0.055, vz:Math.sin(a) * v,
+                 life:1, size:2 + Math.random() * 3, hue:hue });
+  }
+  if (parts.length > 220) parts.splice(0, parts.length - 220);
+}
+
+/* --- appuis : la bille ecrase toutes les touches sous son empreinte --- */
+/* Hauteur au-dela de laquelle la bille ne touche plus les touches. Le test de
+   contact etait purement horizontal : en l'air on enfoncait quand meme tout ce
+   qu'on survolait, avec le son, l'animation et le combo. Le saut evitait donc
+   la bombe SANS rien couter, alors que renoncer aux touches survolees est
+   precisement ce qui doit se payer. */
+var GARDE_SAUT = 0.28;
+
+/* Rayon de contact effectif, nul en l'air. Le contact etait teste a DEUX
+   endroits — ici pour le son et les points, et plus bas pour le ressort qui
+   enfonce la touche — et je n'avais corrige que le premier : la bille ne
+   jouait plus rien en vol mais continuait d'ecraser tout ce qu'elle survolait.
+   Une seule fonction desormais, les deux appelants ne peuvent plus diverger.
+   Le rayon se retrecit progressivement plutot que de disparaitre d'un coup,
+   sinon un rase-mottes bascule d'un extreme a l'autre en une seule image. */
+function rayonContact() {
+  if (dead || jy > GARDE_SAUT) return 0;
+  return ball.r * (1 - 0.45 * (jy / GARDE_SAUT));
+}
+
+function pressKeysUnderBall() {
+  var rc = rayonContact();
+  if (rc <= 0) return;
+
+  var r0 = Math.floor((ball.z - rc - KEY_D / 2) / PITCH_Z) - 1;
+  var r1 = Math.floor((ball.z + rc + KEY_D / 2) / PITCH_Z) + 1;
+  var fresh = [];
+
+  for (var r = r0; r <= r1; r++) {
+    var rd = rowAt(r);
+    if (!rd) continue;
+    for (var c = 0; c < COLS; c++) {
+      var k = rd.slots[c];
+      if (!k) continue;
+      // recouvrement boite/cercle, tolerance = rayon de la bille
+      var dx = Math.abs(ball.x - colX(c)) - KEY_W / 2;
+      var dz = Math.abs(ball.z - rowZ(r)) - KEY_D / 2;
+      var ox = Math.max(0, dx), oz = Math.max(0, dz);
+      if (ox * ox + oz * oz > rc * rc) continue;
+
+      k.press = 1; k.pv = 0;
+      if (!k.hit) { k.hit = true; fresh.push(k); }
+    }
+  }
+  if (!fresh.length) return;
+
+  // au plus 4 sons par frappe groupee, en accord ascendant
+  fresh.sort(function (a, b) { return a.col - b.col; });
+  var n = Math.min(fresh.length, 4);
+  for (var i = 0; i < n; i++) {
+    playKey(1 + i * 0.06 + Math.min(0.25, combo * 0.004), 0.72 + Math.min(0.28, combo * 0.006), i * 0.018);
+  }
+  if (SAVE.vib && navigator.vibrate) navigator.vibrate(fresh.length > 1 ? 12 : 7);
+
+  var mult = multiplier();
+  var plain = 0;                    // une grosse bille touche 3-4 touches d'un coup :
+                                    // on agrege les gains ordinaires en UN seul "+N",
+                                    // sinon l'ecran se couvre de "+5" illisibles.
+  for (var j = 0; j < fresh.length; j++) {
+    var k2 = fresh[j];
+    combo++;
+    var gain = (k2.bonus ? 5 : 1) * mult;
+    if (k2.bonus) {
+      var wcf = WORD_COLORS[k2.ci || 0];
+      spawnFlyer(colX(k2.col), CAP_H + 1.6, rowZ(k2.row), gain, wcf.css, wcf.ink);
+    }
+    else score += gain;
+    ball.r = Math.min(R_MAX, ball.r + (k2.bonus ? 0.016 : 0.006));
+    if (k2.bonus) boost = Math.min(0.030, boost + 0.011);
+    spawnParts(colX(k2.col), rowZ(k2.row), k2.bonus ? 14 : 5, k2.h, 0.05);
+
+    if (k2.bonus) {
+      // serie chaude : chaque lettre consecutive monte d'un demi-ton
+      hotStreak++;
+      playCoins(Math.min(4, hotStreak));
+      spawnParts(colX(k2.col), rowZ(k2.row), 20, 46, 0.09);
+      flash = Math.max(flash, 0.5);
+      if (hotStreak >= 2) {
+        streakEl.innerHTML = "x" + hotStreak + '<span class="sub">SERIE</span>';
+        streakEl.classList.remove("go"); void streakEl.offsetWidth; streakEl.classList.add("go");
+      }
+    } else plain += gain;
+
+    if (k2.bonus) {
+      var rd2 = rowAt(k2.row);
+      if (rd2 && rd2.word) {
+        rd2.pos++;
+        if (rd2.pos >= rd2.word.length) {
+          wordsDone++; jackpots++;
+          var payout = 40 * mult * Math.max(1, Math.min(5, hotStreak));
+          score += payout;
+          flash = 1; shake = 12;
+          ball.r = Math.min(R_MAX, ball.r + 0.08);
+          boost = Math.min(0.036, boost + 0.020);
+          comboEl.textContent = "JACKPOT +" + payout;
+          comboEl.classList.remove("go"); void comboEl.offsetWidth; comboEl.classList.add("go");
+          playChord([0, 4, 7, 12, 16, 19], "triangle", 0.55, 0.15);
+          playCoins(6);
+          if (SAVE.vib && navigator.vibrate) navigator.vibrate([12, 40, 12, 40, 12, 40, 40]);
+          for (var b = 0; b < 60; b++) {
+            spawnParts(ball.x + (Math.random() - 0.5) * 2.4, ball.z + (Math.random() - 0.5) * 2.4,
+                       1, 40 + Math.random() * 20, 0.13);
+          }
+          hotStreak = 0;
+        }
+      }
+    }
+  }
+  // Nait AU-DESSUS de la bille, pas dessus : a 0.4 il se projetait pile sur
+  // elle et la masquait a chaque ramassage. Et il manquait le relief.
+  if (plain > 0) pop(ball.x, elevAtZ(ball.z) + CAP_H + 3.0, ball.z, "+" + plain, 0, false);
+  if (combo > bestCombo) bestCombo = combo;
+  shake = Math.min(7, shake + 1.4);
+  syncHud();
+}
+
+/* Les mobs FONT RETRECIR, ils ne tuent pas. Le sans-echec est ce qui rend le
+   jeu tenable en session longue ; un ennemi mortel casserait ca. Perdre de la
+   taille coute le multiplicateur, donc la sanction reste vraie. */
+/* Les mobs TRAVERSENT le clavier de gauche a droite devant toi. C'est un
+   probleme de TIMING (quand passer) et non plus de couloir, et surtout ils
+   arrivent par le cote : on les voit venir sans avoir a regarder derriere. */
+function updateMobs(dt) {
+  var span = COLS * PITCH_X * 0.5 + 2.2;
+  for (var i = mobs.length - 1; i >= 0; i--) {
+    var m = mobs[i];
+    if (m.z < ball.z - 3 || Math.abs(m.x) > span) { mobs.splice(i, 1); continue; }
+    if (!m.alive) { m.hitAt -= dt; if (m.hitAt <= 0) mobs.splice(i, 1); continue; }
+
+    m.x += m.dir * m.vx * dt;
+    m.ph += 0.07 * dt;
+
+    var T = MOB_TYPES[m.type];
+    var my = elevAtZ(m.z) + CAP_H + T.hover + Math.sin(m.ph) * 0.12;
+    var bally = elevAtZ(ball.z) + CAP_H + jy + ball.r;
+    var dx = ball.x - m.x, dz = ball.z - m.z, dy = bally - my;
+    var rr = ball.r + m.r;
+
+    if (invuln <= 0 && dx * dx + dz * dz < rr * rr && Math.abs(dy) < rr * 1.05) {
+      m.alive = false; m.hitAt = 18;
+      lives--; invuln = 70;
+      ball.r = Math.max(R_MIN, ball.r - 0.10);
+      combo = 0; hotStreak = 0;
+      redFlash = 1; shake = 11;
+      playHurt();
+      if (SAVE.vib && navigator.vibrate) navigator.vibrate([60, 50, 60]);
+      pop(m.x, my + 0.5, m.z, lives > 0 ? "-1 VIE" : "K.O.", 0, true);
+      spawnParts(m.x, m.z, 26, 280, 0.10);
+      syncHud();
+      if (lives <= 0) { ball.vy = -0.010; die(); }
+    }
+  }
+}
+
+function updateBombs(dt) {
+  for (var i = bombs.length - 1; i >= 0; i--) {
+    var b = bombs[i];
+    if (b.z < ball.z - 3) { bombs.splice(i, 1); continue; }
+    if (!b.alive) { b.boom -= dt; if (b.boom <= 0) bombs.splice(i, 1); continue; }
+    b.ph += 0.045 * dt;
+
+    var by = elevAtZ(b.z) + CAP_H + 0.55 + Math.sin(b.ph) * 0.22;
+    var bally = elevAtZ(ball.z) + CAP_H + jy + ball.r;
+    var dx = ball.x - b.x, dz = ball.z - b.z, dy = bally - by;
+    var rr = ball.r + b.r;
+    // Vraie distance 3D. Le test precedent etait un CYLINDRE (cercle en XZ +
+    // hauteur separee) : la bille passait au-dessus sans toucher, puis se
+    // cognait en redescendant juste derriere la bombe.
+    if (invuln <= 0 && dx * dx + dy * dy + dz * dz < rr * rr) {
+      b.alive = false; b.boom = 16;
+      lives--; invuln = 70;
+      ball.r = Math.max(R_MIN, ball.r - 0.12);
+      combo = 0; hotStreak = 0;
+      redFlash = 1; shake = 13;
+      playHurt();
+      if (SAVE.vib && navigator.vibrate) navigator.vibrate([70, 40, 70]);
+      pop(b.x, by + 0.9, b.z, lives > 0 ? "-1 VIE" : "K.O.", 0, true);
+      spawnParts(b.x, b.z, 34, 12, 0.13);
+      syncHud();
+      if (lives <= 0) { ball.vy = -0.010; die(); }
+    }
+  }
+}
+
+function drawBomb(b) {
+  var by = elevAtZ(b.z) + CAP_H + 0.55 + Math.sin(b.ph) * 0.22;
+  var c = proj(b.x, by, b.z);
+  var R = b.r * c[2];
+  if (R < 1.5 || c[1] < -60 || c[1] > H + 60) return;
+  var fade = b.alive ? 1 : Math.max(0, b.boom / 16);
+
+  ctx.save();
+  ctx.globalAlpha = fade;
+  if (!b.alive) { var k = 1 + (1 - fade) * 1.9; R *= k; ctx.globalAlpha = fade * 0.8; }
+
+  // ombre au sol, sous la bombe
+  var sy = elevAtZ(b.z) + 0.03;
+  quad(proj(b.x - b.r * .7, sy, b.z - b.r * .7), proj(b.x + b.r * .7, sy, b.z - b.r * .7),
+       proj(b.x + b.r * .7, sy, b.z + b.r * .7), proj(b.x - b.r * .7, sy, b.z + b.r * .7),
+       "rgba(0,0,0,.26)");
+
+  var g = ctx.createRadialGradient(c[0] - R * .34, c[1] - R * .38, R * .08, c[0], c[1], R);
+  g.addColorStop(0, b.alive ? "#5a5a68" : "#ff9a3c");
+  g.addColorStop(0.55, b.alive ? "#26262f" : "#e03a1a");
+  g.addColorStop(1, b.alive ? "#0d0d12" : "#7a1206");
+  ctx.beginPath(); ctx.arc(c[0], c[1], R, 0, Math.PI * 2);
+  ctx.fillStyle = g; ctx.fill();
+
+  if (b.alive) {
+    // meche + etincelle
+    ctx.strokeStyle = "#c08a3a"; ctx.lineWidth = Math.max(1.4, R * 0.17);
+    ctx.beginPath();
+    ctx.moveTo(c[0] + R * 0.42, c[1] - R * 0.76);
+    ctx.quadraticCurveTo(c[0] + R * 1.06, c[1] - R * 1.34, c[0] + R * 0.34, c[1] - R * 1.62);
+    ctx.stroke();
+    var sp = 0.6 + 0.4 * Math.sin(performance.now() / 70 + b.ph);
+    var sg = ctx.createRadialGradient(c[0] + R * .34, c[1] - R * 1.62, 0, c[0] + R * .34, c[1] - R * 1.62, R * 0.6 * sp);
+    sg.addColorStop(0, "rgba(255,240,150,.95)");
+    sg.addColorStop(1, "rgba(255,140,20,0)");
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(c[0] + R * .34, c[1] - R * 1.62, R * 0.6 * sp, 0, Math.PI * 2); ctx.fill();
+    // reflet
+    ctx.fillStyle = "rgba(255,255,255,.30)";
+    ctx.beginPath(); ctx.ellipse(c[0] - R * .34, c[1] - R * .38, R * .26, R * .17, -0.6, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawMob(m) {
+  var T0 = MOB_TYPES[m.type || 0];
+  var y = elevAtZ(m.z) + CAP_H + T0.hover + Math.sin(m.ph) * 0.12;
+  var c = proj(m.x, y, m.z);
+  var R = m.r * c[2];
+  if (R < 1.5 || c[1] < -60 || c[1] > H + 60) return;
+  var fade = m.alive ? 1 : Math.max(0, m.hitAt / 18);
+
+  ctx.save();
+  ctx.globalAlpha = fade;
+
+  var msy = elevAtZ(m.z) + 0.03;
+  quad(proj(m.x - m.r * .8, msy, m.z - m.r * .8), proj(m.x + m.r * .8, msy, m.z - m.r * .8),
+       proj(m.x + m.r * .8, msy, m.z + m.r * .8), proj(m.x - m.r * .8, msy, m.z + m.r * .8),
+       "rgba(0,0,0,.32)");
+
+  var T = MOB_TYPES[m.type || 0];
+  if (T.ready) {
+    var d = R * 2.5;
+    if (!m.alive) { ctx.translate(c[0], c[1]); ctx.rotate((1 - fade) * 1.6); ctx.translate(-c[0], -c[1]); }
+    ctx.drawImage(T.img, c[0] - d / 2, c[1] - d * 0.58, d, d);
+  } else {
+    var g = ctx.createRadialGradient(c[0] - R * .3, c[1] - R * .35, R * .1, c[0], c[1], R);
+    g.addColorStop(0, "#7b5bd6"); g.addColorStop(1, "#2e1b52");
+    ctx.beginPath(); ctx.arc(c[0], c[1], R, 0, Math.PI * 2);
+    ctx.fillStyle = g; ctx.fill();
+  }
+  ctx.restore();
+}
+
+// support : uniquement sous le CENTRE. La taille rapporte des points,
+// elle ne doit pas rendre le jeu plus facile a survivre.
+function hasSupport() {
+  var r = Math.round(ball.z / PITCH_Z);
+  for (var d = -1; d <= 1; d++) {
+    var rd = rowAt(r + d);
+    if (!rd) continue;
+    for (var c = 0; c < COLS; c++) {
+      var k = rd.slots[c];
+      if (!k) continue;
+      if (Math.abs(ball.x - colX(c)) <= KEY_W / 2 + 0.12 &&
+          Math.abs(ball.z - rowZ(r + d)) <= KEY_D / 2 + 0.12) return true;
+    }
+  }
+  return false;
+}
+
+/* Notation de fin. Trois criteres independants plutot qu'un seuil de score :
+   un joueur peut briller par la distance, par la collecte ou par la survie. */
+function noter() {
+  var e = 0;
+  if (Math.floor(ball.z / PITCH_Z) >= 40) e++;   // distance
+  if (wordsDone >= 1) e++;                       // au moins un mot boucle
+  if (bestCombo >= 30) e++;                      // regularite
+  return e;
+}
+
+function afficherNote(n) {
+  var hud = document.getElementById("hud");
+  if (hud) hud.style.opacity = "0";
+  var el = document.getElementById("note");
+  if (!el) return;
+  var h = "";
+  for (var i = 0; i < 3; i++) {
+    var pleine = i < n;
+    h += '<span><img class="' + (i === 1 ? "mid" : "") + (pleine ? " on" : "") + '"'
+       + (pleine ? ' style="animation-delay:' + (i * 0.16) + 's"' : "")
+       + ' src="ui/etoile_' + (pleine ? "pleine" : "vide") + '.png" alt=""></span>';
+  }
+  el.innerHTML = h;
+  if (n > 0) setTimeout(function () { playChord([0, 4, 7], "triangle", 0.35, 0.12); }, 260);
+}
+
+function die() {
+  if (dead) return;
+  dead = true; playing = false;
+
+  /* En mode demo (menu), la partie n'appartient pas au joueur : pas d'ecran de
+     fin, pas de vibration, pas de pieces creditees et surtout pas de meilleur
+     score ecrase. On relance simplement la demonstration. */
+  if (demo) {
+    setTimeout(function () { if (demo) lancerDemo(); }, 800);
+    return;
+  }
+
+  playFall();
+  if (SAVE.vib && navigator.vibrate) navigator.vibrate([40, 60, 40]);
+  if (score > best) { best = score; localStorage.setItem("thock_best", String(best)); }
+  var gagne = Math.round(score * 0.5);
+  SAVE.purse += gagne;
+  var montees = gagnerXp(score);
+  persist();
+  setTimeout(function () {
+    document.getElementById("earned").textContent = "+" + gagne;
+    var av = document.getElementById("lvlUp");
+    if (av) {
+      if (montees > 0) {
+        av.textContent = "NIVEAU " + SAVE.level + " !";
+        av.style.display = "block";
+      } else av.style.display = "none";
+    }
+    document.getElementById("finalScore").textContent = score;
+    document.getElementById("finalInfo").textContent =
+      "meilleur : " + best + "   ·   combo " + bestCombo + "   ·   jackpots " + jackpots;
+    afficherNote(noter());
+    // au-dela de 2 reprises on arrete : la partie doit finir
+    document.getElementById("bRepartir").style.display = revives >= 2 ? "none" : "block";
+    document.getElementById("lvlNumFin").textContent = SAVE.level;
+    document.getElementById("lvlFillFin").style.width =
+      Math.min(100, SAVE.xp / xpRequis(SAVE.level) * 100) + "%";
+    overEl.style.display = "flex";
+    overEl.classList.remove("hidden");
+    musique(true);
+  }, 700);
+}
+
+/* ================================================================ RENDU === */
+
+function drawChocolate() {
+  // Une nappe unique ne peut plus marcher avec du relief : on la trace par
+  // bandes qui epousent la colline, du plus loin au plus proche.
+  var hw = COLS * PITCH_X * 3.2;
+  var cur = Math.floor(ball.z / PITCH_Z);
+  var r0 = cur - TRAIL_ROWS - 3, r1 = cur + VIEW_ROWS + 10;
+
+  for (var r = r1; r >= r0; r--) {
+    var z0 = rowZ(r) - PITCH_Z / 2, z1 = rowZ(r) + PITCH_Z / 2;
+    var e0 = elevAtZ(z0) + FLOOR_Y, e1 = elevAtZ(z1) + FLOOR_Y;
+    var far = Math.max(0, Math.min(1, (r - cur) / (VIEW_ROWS + 8)));
+    var L = 26 + far * 48;
+    quad(proj(-hw, e0, z0), proj(hw, e0, z0), proj(hw, e1, z1), proj(-hw, e1, z1),
+         "hsl(" + (26 + far * 8) + "," + (30 - far * 16) + "%," + L + "%)");
+  }
+}
+
+function drawShadow(k) {
+  var cx = colX(k.col), cz = rowZ(k.row), ex = KEY_W * 0.54, ez = KEY_D * 0.54;
+  var fy = rowElev(k.row) + FLOOR_Y + 0.01;
+  var a = proj(cx - ex, fy, cz - ez), b = proj(cx + ex, fy, cz - ez);
+  var c = proj(cx + ex, fy, cz + ez), d = proj(cx - ex, fy, cz + ez);
+  quad(a, b, c, d, "rgba(0,0,0,.30)");
+}
+
+function capGeom(k) {
+  var cx = colX(k.col), cz = rowZ(k.row);
+  var e = rowElev(k.row);
+  var top = e + CAP_H * (1 - k.press * TRAVEL);
+  var bot = e - 0.32;                                  // keycap EPAIS : le flanc doit se voir
+  var x0 = cx - KEY_W / 2, x1 = cx + KEY_W / 2, z0 = cz - KEY_D / 2, z1 = cz + KEY_D / 2;
+  var tx0 = x0 + TAPER, tx1 = x1 - TAPER, tz0 = z0 + TAPER, tz1 = z1 - TAPER;
+  return {
+    bfl:proj(x0,bot,z0), bfr:proj(x1,bot,z0), bbl:proj(x0,bot,z1), bbr:proj(x1,bot,z1),
+    tfl:proj(tx0,top,tz0), tfr:proj(tx1,top,tz0), tbl:proj(tx0,top,tz1), tbr:proj(tx1,top,tz1),
+    cx:cx
+  };
+}
+
+/* Atlas de glyphes. fillText avec une taille de police differente par touche
+   forcait une re-resolution de police ~65 fois par frame : 27 ms a lui seul.
+   Un drawImage depuis un atlas pre-rendu coute une fraction de ca. */
+var GCELL = 64;
+function makeAtlas(color) {
+  var a = document.createElement("canvas");
+  a.width = GCELL * 26; a.height = GCELL;
+  var g = a.getContext("2d");
+  g.font = "bold 44px Verdana,\"DejaVu Sans\",Geneva,sans-serif";
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillStyle = color;
+  for (var i = 0; i < 26; i++) g.fillText(ALPHA.charAt(i), i * GCELL + GCELL / 2, GCELL / 2);
+  return a;
+}
+/* Deux especes, pas deux couleurs : le violet est lourd et lent, le vert est
+   petit et rapide. La couleur devient une INFORMATION de jeu. */
+var MOB_TYPES = [
+  { src:"mob.png",  r:0.52, cross:0.055, hover:0.30, img:null, ready:false },
+  { src:"mob2.png", r:0.40, cross:0.086, hover:0.62, img:null, ready:false }
+];
+var mobReady = false;
+MOB_TYPES.forEach(function (T) {
+  T.img = new Image();
+  T.img.onload = function () { T.ready = true; mobReady = MOB_TYPES.some(function (X) { return X.ready; }); };
+  T.img.src = T.src;
+});
+
+var ATLAS_N = makeAtlas("rgba(18,12,8,.82)");
+var ATLAS_B = makeAtlas("rgba(12,8,4,.92)");
+
+function drawCap(k) {
+  var g = capGeom(k);
+  if (g.tfl[1] > H + 200 || g.bbl[1] < -80) return;
+  var pr = k.press;
+  var L = k.l + pr * 8, S = k.s;
+  var hue = k.h;
+
+  if (k.bonus) {
+    var wc = WORD_COLORS[k.ci || 0];
+    var pulse = 0.5 + 0.5 * Math.sin(performance.now() / 260 + k.row);
+    // teinte franche mais SOMBRE : la lettre noire doit rester lisible dessus
+    hue = wc.h; S = wc.s * 0.86; L = wc.l - 4 + pulse * 4 + pr * 5;
+    // halo fluo sous la touche : c'est le seul element lumineux du plateau
+    var hc = proj(colX(k.col), rowElev(k.row) + 0.05, rowZ(k.row));
+    var hr = Math.max(4, hc[2] * (0.95 + pulse * 0.25));
+    var hg = ctx.createRadialGradient(hc[0], hc[1], hr * 0.15, hc[0], hc[1], hr);
+    hg.addColorStop(0, "hsla(" + wc.h + "," + wc.s + "%,58%," + (0.16 + pulse * 0.10) + ")");
+    hg.addColorStop(1, "hsla(" + wc.h + "," + wc.s + "%,58%,0)");
+    ctx.fillStyle = hg;
+    ctx.beginPath(); ctx.arc(hc[0], hc[1], hr, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Aplats + un SEUL contour sur le plateau. Les degrades par touche et les
+  // contours sur chaque face coutaient a eux seuls ~40 ms/frame au profilage.
+  // Ecart de valeur accentue entre les trois faces : sans contour, c'est lui
+  // seul qui porte le relief.
+  quad(g.bfl, g.bfr, g.tfr, g.tfl, "hsl(" + hue + "," + (S + 6) + "%," + (L - 22) + "%)");
+  if (g.cx > cam.x) quad(g.bfl, g.tfl, g.tbl, g.bbl, "hsl(" + hue + "," + (S + 8) + "%," + (L - 31) + "%)");
+  else              quad(g.bfr, g.tfr, g.tbr, g.bbr, "hsl(" + hue + "," + (S + 8) + "%," + (L - 31) + "%)");
+  roundQuad([g.tfl, g.tfr, g.tbr, g.tbl], 0.20,
+            "hsl(" + hue + "," + S + "%," + (L + 7) + "%)",
+            k.bonus ? "rgba(255,255,255,.95)" : null, k.bonus ? 3 : 0);
+
+  var mfx = (g.tfl[0] + g.tfr[0]) / 2, mfy = (g.tfl[1] + g.tfr[1]) / 2;
+  var mbx = (g.tbl[0] + g.tbr[0]) / 2, mby = (g.tbl[1] + g.tbr[1]) / 2;
+  var tw = Math.hypot(g.tfr[0] - g.tfl[0], g.tfr[1] - g.tfl[1]);
+  var td = Math.hypot(mbx - mfx, mby - mfy);
+  if (tw > 8) {
+    var gi = ALPHA.indexOf(k.letter);
+    if (gi >= 0) {
+      var dw = tw * 0.78, dh = dw * Math.max(0.26, td / tw);
+      ctx.drawImage(k.bonus ? ATLAS_B : ATLAS_N, gi * GCELL, 0, GCELL, GCELL,
+                    (mfx + mbx) / 2 - dw / 2, (mfy + mby) / 2 - dh / 2, dw, dh);
+    }
+  }
+}
+
+/* Bonus depouille : juste la valeur qui flotte haut au-dessus de la touche.
+   Pastille, contour et fil de rattache faisaient "widget de debug" ; le halo
+   sous la touche suffit a designer laquelle est visee. */
+function drawBonusTag(k) {
+  var bob = Math.sin(performance.now() / 320 + k.col * 1.7) * 0.30;
+  var dr = k.row - Math.floor(ball.z / PITCH_Z);
+  // en-dessous de 2 rangees l'etiquette se projette SUR la bille et la masque
+  if (dr < 2 || dr > 6) return;
+  var p = proj(colX(k.col), rowElev(k.row) + CAP_H + 2.45 + bob, rowZ(k.row));
+  var s = p[2];
+  if (s < 22 || p[1] < -20 || p[1] > H + 50) return;
+
+  var wc = WORD_COLORS[k.ci || 0];
+  var fs = Math.max(13, s * 0.40);
+  ctx.save();
+  ctx.font = "900 " + fs + "px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  var label = "x" + (5 * multiplier());
+  // Ombre portee franche plutot qu'un contour : le clair-sur-clair rendait
+  // l'etiquette illisible, mais un liisere aurait rajoute du bruit graphique.
+  ctx.shadowColor = "rgba(20,8,2,.85)";
+  ctx.shadowBlur = fs * 0.30; ctx.shadowOffsetY = fs * 0.13;
+  ctx.fillStyle = wc.css;
+  ctx.fillText(label, p[0], p[1]);
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  ctx.fillText(label, p[0], p[1]);
+  ctx.restore();
+}
+
+var SPOTS = (function () {
+  var n = 30, p = [], ga = Math.PI * (3 - Math.sqrt(5));
+  for (var i = 0; i < n; i++) {
+    var y = 1 - (i / (n - 1)) * 2, r = Math.sqrt(Math.max(0, 1 - y * y)), th = ga * i;
+    p.push({ x:Math.cos(th) * r, y:y, z:Math.sin(th) * r, hue:i * 360 / n });
+  }
+  return p;
+})();
+var VN, VU;
+(function () {
+  var dy = -(CAM_UP - CAP_H), dz = CAM_BACK, l = Math.hypot(dy, dz);
+  VN = [0, -dy / l, -dz / l]; VU = [0, dz / l, -dy / l];
+})();
+
+/* Dessin de la sphere isole dans sa propre fonction : la boutique s'en sert
+   pour afficher un VRAI apercu de la bille au lieu d'un aplat de couleur. */
+/* PLACAGE DE DRAPEAU SUR SPHERE, pixel par pixel.
+   L'ancien rendu peignait des bandes plates de largeur constante puis les
+   faisait glisser. Deux consequences mesurables. Les bandes pavaient toute la
+   largeur du disque, donc la derniere couleur reapparaissait du cote oppose.
+   Et le glissement etait pilote par rotZ, qui ne bouge QUE quand la bille
+   braque : en ligne droite la texture etait strictement immobile, d'ou une
+   bille qui se lisait comme une vignette collee et non comme une boule.
+   Ici on reconstruit la normale de chaque pixel, on lui applique la rotation
+   INVERSE de la bille (rx = roulement avant, rz = roulis lateral), et on lit
+   la couleur sur la sphere au repos. Le drapeau s'enroule pour de vrai, se
+   comprime aux limbes, et tourne quel que soit le sens du deplacement. */
+var SPH_MAX = 192, sphCv = null, sphCx = null, sphImg = null;
+
+function peindreSphereDrapeau(ctx2, cx, cy, R, flag, horiz, rx, rz) {
+  var S = Math.max(2, Math.min(SPH_MAX, Math.round(R * 2)));
+  if (!sphCv) {
+    // un seul tampon, alloue a la taille max : la bille grossit en cours de
+    // partie et reallouer un canvas a chaque pixel de rayon coutait plus cher
+    // que le placage lui-meme
+    sphCv = document.createElement("canvas");
+    sphCv.width = sphCv.height = SPH_MAX;
+    sphCx = sphCv.getContext("2d");
+    sphImg = sphCx.createImageData(SPH_MAX, SPH_MAX);
+  }
+  var rgb = flag._rgb;
+  if (!rgb) {                                 // conversion hex -> rvb, une fois
+    rgb = flag._rgb = [];
+    for (var q = 0; q < flag.length; q++) {
+      rgb.push([parseInt(flag[q].substr(1, 2), 16),
+                parseInt(flag[q].substr(3, 2), 16),
+                parseInt(flag[q].substr(5, 2), 16)]);
+    }
+  }
+  var n = rgb.length, dat = sphImg.data, demi = S / 2;
+  var cX = Math.cos(-rx), sX = Math.sin(-rx);
+  var cZ = Math.cos(-rz), sZ = Math.sin(-rz);
+
+  for (var py = 0; py < S; py++) {
+    var ny = (py + 0.5 - demi) / demi;
+    var lig = py * SPH_MAX * 4;
+    for (var px = 0; px < S; px++) {
+      var i = lig + px * 4;
+      var nx = (px + 0.5 - demi) / demi;
+      var d2 = nx * nx + ny * ny;
+      if (d2 > 1) { dat[i + 3] = 0; continue; }
+      // normale du point de surface : z pointe vers la camera
+      var wx = nx, wy = -ny, wz = Math.sqrt(1 - d2);
+      // rotation inverse : d'abord le roulis lateral, puis le roulement avant
+      var ax = wx * cZ - wy * sZ, ay = wx * sZ + wy * cZ;
+      var by = ay * cX - wz * sX, bz = ay * sX + wz * cX;
+      var b;
+      if (horiz) {                            // bandes par latitude, pole a pole
+        var la = by < -1 ? -1 : (by > 1 ? 1 : by);
+        b = ((0.5 - Math.asin(la) / Math.PI) * n) | 0;
+      } else {                                // bandes par longitude, deux tours
+        var u = Math.atan2(ax, bz) / Math.PI + 0.5;
+        u -= Math.floor(u);
+        b = (u * n) | 0;
+      }
+      if (b < 0) b = 0; else if (b >= n) b = n - 1;
+      var c = rgb[b];
+      dat[i] = c[0]; dat[i + 1] = c[1]; dat[i + 2] = c[2]; dat[i + 3] = 255;
+    }
+  }
+  sphCx.putImageData(sphImg, 0, 0, 0, 0, S, S);
+  ctx2.drawImage(sphCv, 0, 0, S, S, cx - R, cy - R, R * 2, R * 2);
+}
+
+function peindreBille(ctx2, cx, cy, R, bille, rotX, rotZ, combo2) {
+  ctx2.save();
+  ctx2.beginPath(); ctx2.arc(cx, cy, R, 0, Math.PI * 2); ctx2.clip();
+
+  if (bille.globe) {
+    var og = ctx2.createRadialGradient(cx - R * .3, cy - R * .35, R * .1, cx, cy, R * 1.1);
+    og.addColorStop(0, "#5fc8f5"); og.addColorStop(1, "#0f5f9e");
+    ctx2.fillStyle = og; ctx2.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+    var dg = ((rotZ / (Math.PI * 2)) % 1 + 1) % 1;
+    ctx2.fillStyle = "#3fae5a";
+    var TERRES = [[.10, .30, .30, .22], [.46, .18, .20, .16], [.34, .58, .26, .30],
+                  [.72, .44, .24, .34], [.62, .12, .30, .14]];
+    for (var t = 0; t < TERRES.length; t++) {
+      var T = TERRES[t], u = (T[0] + dg) % 1;
+      for (var w = -1; w <= 1; w++) {
+        ctx2.beginPath();
+        ctx2.ellipse(cx - R + (u + w) * 2 * R + T[2] * R, cy - R + T[1] * 2 * R + T[3] * R,
+                     T[2] * R, T[3] * R, 0, 0, Math.PI * 2);
+        ctx2.fill();
+      }
+    }
+    // meridiens : sans eux la sphere se lit comme un disque plat
+    ctx2.strokeStyle = "rgba(255,255,255,.20)"; ctx2.lineWidth = Math.max(1, R * .035);
+    for (var m = -2; m <= 2; m++) {
+      ctx2.beginPath(); ctx2.moveTo(cx + m * R * .42, cy - R);
+      ctx2.bezierCurveTo(cx + m * R * .62, cy - R * .3, cx + m * R * .62, cy + R * .3,
+                         cx + m * R * .42, cy + R);
+      ctx2.stroke();
+    }
+    ctx2.beginPath(); ctx2.moveTo(cx - R, cy); ctx2.lineTo(cx + R, cy); ctx2.stroke();
+    var gg = ctx2.createRadialGradient(cx - R * .38, cy - R * .42, R * .05, cx, cy, R * 1.15);
+    gg.addColorStop(0, "rgba(255,255,255,.44)");
+    gg.addColorStop(0.5, "rgba(255,255,255,0)");
+    gg.addColorStop(1, "rgba(10,20,40,.46)");
+    ctx2.fillStyle = gg; ctx2.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+  } else if (bille.flag) {
+    peindreSphereDrapeau(ctx2, cx, cy, R, bille.flag, !!bille.h, rotX, rotZ);
+    // galbe : assombrit les bords, eclaire le haut-gauche
+    var g1 = ctx2.createRadialGradient(cx - R * .38, cy - R * .42, R * .05, cx, cy, R * 1.15);
+    g1.addColorStop(0, "rgba(255,255,255,.42)");
+    g1.addColorStop(0.5, "rgba(255,255,255,0)");
+    g1.addColorStop(1, "rgba(20,10,4,.42)");
+    ctx2.fillStyle = g1; ctx2.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+  } else {
+    var h = bille.hue, S = (bille.sat === undefined ? 16 : bille.sat);
+    var bg = ctx2.createRadialGradient(cx - R * .42, cy - R * .50, R * .05, cx - R * .10, cy - R * .10, R * 1.28);
+    bg.addColorStop(0,    "hsl(" + h + "," + Math.round(S * 0.55) + "%,97%)");
+    bg.addColorStop(0.45, "hsl(" + h + "," + Math.round(S * 0.95) + "%,86%)");
+    bg.addColorStop(0.78, "hsl(" + h + "," + Math.round(S * 1.15) + "%,70%)");
+    bg.addColorStop(1,    "hsl(" + h + "," + Math.round(S * 1.35) + "%,50%)");
+    ctx2.fillStyle = bg; ctx2.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+
+    var cx1 = Math.cos(rotX), sx1 = Math.sin(rotX), cz1 = Math.cos(rotZ), sz1 = Math.sin(rotZ);
+    for (var k = 0; k < SPOTS.length; k++) {
+      var pt = SPOTS[k];
+      var y1 = pt.y * cx1 - pt.z * sx1, z1 = pt.y * sx1 + pt.z * cx1, x1 = pt.x;
+      var x2 = x1 * cz1 - y1 * sz1, y2 = x1 * sz1 + y1 * cz1, z2 = z1;
+      var f = y2 * VN[1] + z2 * VN[2];
+      if (f <= 0.02) continue;
+      ctx2.globalAlpha = Math.min(1, f * 1.6) * 0.30;
+      ctx2.fillStyle = "hsl(" + h + "," + Math.round(S * 0.85) + "%,72%)";
+      ctx2.beginPath();
+      ctx2.arc(cx + x2 * R, cy - (y2 * VU[1] + z2 * VU[2]) * R, R * 0.155 * (0.5 + f * 0.5), 0, Math.PI * 2);
+      ctx2.fill();
+    }
+    ctx2.globalAlpha = 1;
+  }
+
+  var occ = ctx2.createRadialGradient(cx, cy + R * .92, R * .05, cx, cy + R * .55, R * 1.05);
+  occ.addColorStop(0, "rgba(46,28,12,.34)");
+  occ.addColorStop(1, "rgba(46,28,12,0)");
+  ctx2.fillStyle = occ; ctx2.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+  ctx2.restore();
+
+  ctx2.strokeStyle = "rgba(60,40,20,.32)";
+  ctx2.lineWidth = Math.max(1, R * 0.045);
+  ctx2.beginPath(); ctx2.arc(cx, cy, R * 0.99, 0, Math.PI * 2); ctx2.stroke();
+}
+
+function drawBall() {
+  // La bille suit l'ENFONCEMENT REEL de la touche qu'elle ecrase : c'est ce
+  // lien qui la fait paraitre posee dessus plutot que flottante au-dessus.
+  var kSous = null, rSous = rowAt(Math.round(ball.z / PITCH_Z));
+  if (rSous) {
+    var meilleur = 9;
+    for (var cc = 0; cc < COLS; cc++) {
+      var kk = rSous.slots[cc];
+      if (!kk) continue;
+      var dd = Math.abs(colX(cc) - ball.x);
+      if (dd < meilleur) { meilleur = dd; kSous = kk; }
+    }
+    if (meilleur > KEY_W * 0.75) kSous = null;
+  }
+  var enfonce = kSous ? kSous.press : 0;
+  var dessus = elevAtZ(ball.z) + CAP_H * (1 - enfonce * TRAVEL);
+  var y = ball.y + jy + dessus + ball.r * 0.94;   // legerement enchassee
+  var c = proj(ball.x, y, ball.z);
+  var R = ball.r * c[2];
+  if (R < 1) return;
+
+  var hue = ballHue();
+
+  /* Ombre de CONTACT, posee sur le dessus de la touche (pas sur le chocolat
+     3 unites plus bas). Elle retrecit et palit quand la bille decolle : c'est
+     le seul indice fiable de "elle touche" contre "elle vole". */
+  if (!dead) {
+    var haut = Math.max(0, jy);
+    var serre = 1 / (1 + haut * 1.9);
+    var sp = proj(ball.x, dessus + 0.012, ball.z);
+    var sr = ball.r * sp[2] * (0.92 * serre + 0.10);
+    var og = ctx.createRadialGradient(sp[0], sp[1], sr * 0.15, sp[0], sp[1], sr);
+    og.addColorStop(0, "rgba(38,22,10," + (0.46 * serre) + ")");
+    og.addColorStop(0.62, "rgba(38,22,10," + (0.22 * serre) + ")");
+    og.addColorStop(1, "rgba(38,22,10,0)");
+    ctx.save();
+    ctx.translate(sp[0], sp[1]);
+    ctx.scale(1, 0.52);                 // ecrasement du plan de la touche
+    ctx.translate(-sp[0], -sp[1]);
+    ctx.fillStyle = og;
+    ctx.beginPath(); ctx.arc(sp[0], sp[1], sr, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  ctx.save();
+  if (ball.squash > 0.005) {
+    ctx.translate(c[0], c[1] + R * ball.squash * 0.5);
+    ctx.scale(1 + ball.squash * 0.4, 1 - ball.squash);
+    ctx.translate(-c[0], -(c[1] + R * ball.squash * 0.5));
+  }
+  peindreBille(ctx, c[0], c[1], R, billeCourante(), ball.rx, ball.rz, combo);
+  ctx.restore();
+}
+
+var last = performance.now();
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  // borne BASSE indispensable : un horodatage qui recule (ajustement d'horloge,
+  // onglet reveille) donnait un dt negatif et faisait reculer la bille.
+  var dt = Math.max(0, Math.min((now - last) / 16.667, 3));
+  last = now;
+  if (W !== window.innerWidth || H !== window.innerHeight) resize();
+  if (!W || !H) return;
+  if (!playing && !dead) return;
+
+  // Pilotage automatique quand le menu est ouvert : le joueur voit a quoi
+  // ressemble le jeu avant d'appuyer sur JOUER.
+  if (demo && playing) {
+    var cd = Math.floor(ball.z / PITCH_Z) + 1, rdd = rowAt(cd);
+    if (rdd) {
+      // colonnes praticables ET sans bombe en approche : la demo doit tenir
+      // longtemps, sinon le menu passe son temps a se relancer
+      var libres = [], sansBombe = [];
+      for (var cc = 0; cc < COLS; cc++) {
+        if (!rdd.slots[cc]) continue;
+        libres.push(cc);
+        var x = colX(cc), risque = false;
+        for (var bi = 0; bi < bombs.length; bi++) {
+          var bb = bombs[bi];
+          if (bb.alive && bb.z > ball.z && bb.z < ball.z + 4.5 && Math.abs(bb.x - x) < 0.85) risque = true;
+        }
+        if (!risque) sansBombe.push(cc);
+      }
+      var choix = sansBombe.length ? sansBombe : libres;
+      if (choix.length) {
+        // on prend la colonne praticable la plus proche de la trajectoire actuelle
+        var meilleure = choix[0], ecart = 9;
+        for (var q = 0; q < choix.length; q++) {
+          var e = Math.abs(colX(choix[q]) - ball.x);
+          if (e < ecart) { ecart = e; meilleure = choix[q]; }
+        }
+        steerX = colX(meilleure);
+      }
+    }
+    var menace = bombs.filter(function (b) {
+      return b.alive && b.z > ball.z + 0.7 && b.z < ball.z + 2.3 && Math.abs(b.x - ball.x) < 0.9;
+    });
+    if (menace.length) doJump();
+  }
+
+  /* ---------------- simulation ---------------- */
+  if (playing) {
+    dist += speed * dt;
+    // la vitesse monte avec la distance ET avec l'elan gagne sur les bonus
+    boost = Math.max(0, boost - 0.00022 * dt);
+    // la pente pilote la vitesse : en descente on prend de l'elan, en montee
+    // on peine. C'est ce qui donne un rythme au parcours.
+    var slope = slopeAtZ(ball.z);
+    slopeSpd += (-slope * 0.090 - slopeSpd) * (1 - Math.pow(0.86, dt));
+    slopeSpd = Math.max(-0.022, Math.min(0.050, slopeSpd));
+    speed = Math.max(0.028, Math.min(0.097, 0.054 + dist * 0.00015) + boost + slopeSpd);
+
+    // saut
+    if (jumping) {
+      jvy -= 0.0045 * dt;
+      jy += jvy * dt;
+      if (jy <= 0) { jy = 0; jvy = 0; jumping = false; ball.squash = 0.26; }
+    }
+
+    var oldX = ball.x, oldZ = ball.z;
+    ball.z += speed * dt;
+
+    if (steerX !== null) {
+      // Le taux de virage suit la vitesse. A taux fixe, aller deux fois plus
+      // vite divisait la maniabilite par deux exactement quand on en a besoin.
+      // max(0,...) : la lenteur en montee ne doit pas EN PLUS engourdir le
+      // virage, sinon la bille traine au moment ou on corrige sa trajectoire.
+      var agil = 0.74 - Math.min(0.30, Math.max(0, speed - 0.054) * 7.0);
+      var k = 1 - Math.pow(Math.max(0.34, agil), dt);
+      ball.x += (steerX - ball.x) * k;
+    }
+    var lim = (COLS * PITCH_X) / 2 + 0.6;
+    ball.x = Math.max(-lim, Math.min(lim, ball.x));
+
+    // roulement : avant autour de X, lateral autour de Z
+    ball.rx += (ball.z - oldZ) / ball.r;
+    ball.rz -= (ball.x - oldX) / ball.r;
+
+    pressKeysUnderBall();
+    updateMobs(dt);
+    updateBombs(dt);
+
+    // "coyote time" : ~100 ms de sursis hors du vide. Sans ca chaque frolement
+    // de bord tue, et le jeu passe pour injuste alors qu'il est juste severe.
+    if (jumping || jy > 0.06) ball.grace = 0;
+    else if (hasSupport()) ball.grace = 0;
+    else {
+      ball.grace += dt;
+      if (ball.grace > 6) { ball.vy = -0.012; die(); }
+    }
+
+    ensureRows(Math.floor(ball.z / PITCH_Z) + VIEW_ROWS + 6);
+    while (Math.floor(ball.z / PITCH_Z) - lowestRow > TRAIL_ROWS + 2) { rows.shift(); lowestRow++; }
+  }
+
+  if (dead) {                       // chute
+    ball.vy -= 0.0055 * dt;
+    ball.y += ball.vy * dt;
+    ball.rx += 0.06 * dt;
+    ball.z += speed * 0.35 * dt;
+  }
+
+  if (invuln > 0) invuln -= dt;
+  if (playing) syncHud();
+  ball.squash = Math.max(0, ball.squash - 0.05 * dt);
+  shake *= Math.pow(0.85, dt);
+  flash *= Math.pow(0.9, dt);
+  redFlash *= Math.pow(0.88, dt);
+
+  // compteur qui defile plutot que de sauter : reflexe machine a sous
+  if (scoreShown !== score) {
+    var diff = score - scoreShown;
+    scoreShown += Math.sign(diff) * Math.max(1, Math.abs(diff) * 0.18 * dt);
+    if (Math.abs(score - scoreShown) < 1) scoreShown = score;
+    scoreEl.textContent = Math.round(scoreShown);
+    // NB: surtout pas "boost" ici, ca masquerait la variable globale du meme
+    // nom sur toute la fonction (hoisting de var) et casserait la vitesse.
+    var pump = Math.min(0.3, Math.abs(diff) / 300);
+    scoreEl.style.transform = "scale(" + (1 + pump) + ")";
+  }
+
+  // flottement lent facon runner mobile : la camera respire au lieu d'etre figee
+  // la camera monte et descend avec le terrain, sinon la bille sort du cadre
+  /* Une vitesse chiffree ne se sent pas. Ce qui la fait sentir, c'est le recul
+     de la camera : le champ s'ouvre, tout retrecit, le flux defile plus vite. */
+  var extra = Math.max(-0.14, Math.min(0.46, (speed - 0.054) * 5.2));
+  camExtra += (extra - camExtra) * (1 - Math.pow(0.90, dt));
+  camUp = CAM_UP + camExtra * (CAM_UP / CAM_BACK)
+        + elevAtZ(cam.z + CAM_BACK + camExtra) + Math.sin(now / 1450) * 0.10;
+  cam.x += (Math.max(-1.2, Math.min(1.2, ball.x * 0.5)) - cam.x) * (1 - Math.pow(0.90, dt));
+  cam.z += ((ball.z - CAM_BACK - camExtra) - cam.z) * (1 - Math.pow(0.80, dt));
+
+  // ressorts des touches : maintenues tant que la bille est dessus
+  var rcv = rayonContact();
+  for (var i = 0; i < rows.length; i++) {
+    for (var c = 0; c < COLS; c++) {
+      var k = rows[i].slots[c];
+      if (!k) continue;
+      var tgt = 0;
+      var dx = Math.abs(ball.x - colX(c)) - KEY_W / 2, dz = Math.abs(ball.z - rowZ(k.row)) - KEY_D / 2;
+      var ox = Math.max(0, dx), oz = Math.max(0, dz);
+      if (rcv > 0 && ox * ox + oz * oz <= rcv * rcv) tgt = 1;
+      k.pv += (tgt - k.press) * (tgt ? 0.20 : 0.075) * dt;
+      k.pv *= Math.pow(0.80, dt);
+      k.press += k.pv * dt;
+      if (k.press < -0.20) { k.press = -0.20; k.pv = 0; }
+      if (k.press > 1.10)  { k.press = 1.10; k.pv = 0; }
+    }
+  }
+
+  /* ---------------- rendu ---------------- */
+  var bg = ctx.createLinearGradient(0, 0, 0, H);
+  // Le stop a 0.16 vaut exactement la couleur lointaine du sol : c'est ce qui
+  // fait disparaitre la couture ciel/chocolat a l'horizon.
+  bg.addColorStop(0, "#fbf7f0");
+  bg.addColorStop(0.16, "#e9dfd0");
+  bg.addColorStop(0.34, "#dfd0bb");
+  bg.addColorStop(0.60, "#c8ab8a");
+  bg.addColorStop(1, "#8a6742");
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+
+  drawChocolate();
+
+  var cur = Math.floor(ball.z / PITCH_Z);
+  var firstRow = Math.max(lowestRow, cur - TRAIL_ROWS);
+  var lastRow = cur + VIEW_ROWS;
+
+  for (var r = lastRow; r >= firstRow; r--) {
+    var rd = rowAt(r);
+    if (!rd) continue;
+    var list = [];
+    for (var c2 = 0; c2 < COLS; c2++) if (rd.slots[c2]) list.push(rd.slots[c2]);
+    list.sort(function (a, b) { return Math.abs(colX(b.col) - cam.x) - Math.abs(colX(a.col) - cam.x); });
+    // Les ombres des rangees proches se projettent enormes sur le chocolat
+    // (gros remplissages translucides) : on ne les dessine que devant la bille.
+    if (r >= cur && r <= cur + 8) for (var q = 0; q < list.length; q++) drawShadow(list[q]);
+    for (var q2 = 0; q2 < list.length; q2++) drawCap(list[q2]);
+    for (var q3 = 0; q3 < list.length; q3++) if (list[q3].bonus) drawBonusTag(list[q3]);
+    for (var mi = 0; mi < mobs.length; mi++) {
+      if (Math.round(mobs[mi].z / PITCH_Z) === r) drawMob(mobs[mi]);
+    }
+    for (var bi = 0; bi < bombs.length; bi++) {
+      if (Math.round(bombs[bi].z / PITCH_Z) === r) drawBomb(bombs[bi]);
+    }
+  }
+
+  // "+1" en espace monde
+  for (var o = pops.length - 1; o >= 0; o--) {
+    var pp = pops[o];
+    pp.life -= 0.030 * dt;
+    pp.y += 0.030 * dt;
+    if (pp.life <= 0) { pops.splice(o, 1); continue; }
+    var sp2 = proj(pp.x, pp.y, pp.z);
+    if (sp2[1] < -40 || sp2[1] > H + 40) continue;
+    var fs = Math.max(9, (pp.big ? 0.42 : 0.30) * sp2[2]);
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, pp.life * 1.5);
+    ctx.font = "900 " + fs + "px -apple-system,Segoe UI,Roboto,sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.lineWidth = Math.max(2, fs * 0.16);
+    ctx.strokeStyle = "rgba(48,24,12,.9)";
+    ctx.strokeText(pp.text, sp2[0], sp2[1]);
+    ctx.fillStyle = pp.big ? "#ffd84d" : "#fff";
+    ctx.fillText(pp.text, sp2[0], sp2[1]);
+    ctx.restore();
+  }
+
+  /* drawBall vivait DANS la boucle ci-dessus, apres son ctx.save() : la bille
+     etait redessinee une fois par etiquette, teintee de leur opacite, et
+     surtout PAS DU TOUT quand aucune etiquette n'etait a l'ecran. Les
+     particules etaient imbriquees de la meme facon. Le defaut restait invisible
+     tant que rouler produisait des "+1" en continu ; il a saute aux yeux des
+     que le saut a cesse d'en produire. */
+  drawBall();
+
+  for (var p = parts.length - 1; p >= 0; p--) {
+    var pa = parts[p];
+    pa.x += pa.vx * dt; pa.y += pa.vy * dt; pa.z += pa.vz * dt;
+    pa.vy -= 0.0035 * dt; pa.life -= 0.02 * dt;
+    if (pa.life <= 0) { parts.splice(p, 1); continue; }
+    var s2 = proj(pa.x, pa.y, pa.z);
+    if (s2[1] < -20 || s2[1] > H + 20) continue;
+    ctx.fillStyle = "hsla(" + pa.hue + ",92%,74%," + pa.life + ")";
+    ctx.beginPath();
+    ctx.arc(s2[0], s2[1], Math.max(0.6, pa.size * pa.life * s2[2] / S0), 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // lignes de fuite : leur intensite suit le recul de camera
+  var rush = Math.max(0, Math.min(1, camExtra / 0.40));
+  if (rush > 0.03) {
+    ctx.save();
+    ctx.lineCap = "round";
+    var vx = W * 0.5, vy = HORIZON;
+    for (var li = 0; li < 26; li++) {
+      var a = (li / 26) * Math.PI * 2 + Math.sin(now / 900 + li) * 0.12;
+      var seed = (li * 97 % 31) / 31;
+      var t0r = 0.42 + seed * 0.30;
+      var t1r = t0r + 0.10 + rush * 0.20;
+      var dx = Math.cos(a) * W * 1.5, dy = Math.sin(a) * H * 1.5;
+      ctx.strokeStyle = "rgba(255,255,255," + (rush * 0.20 * (0.4 + seed * 0.6)) + ")";
+      ctx.lineWidth = 1.5 + rush * 2.5;
+      ctx.beginPath();
+      ctx.moveTo(vx + dx * t0r, vy + dy * t0r);
+      ctx.lineTo(vx + dx * t1r, vy + dy * t1r);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  updateFlyers(dt);          // en espace ecran : ils volent par-dessus la scene
+
+  ctx.restore();
+
+
+  /* Fondu de distance. Sans lui, une touche a 8 rangees est aussi nette et
+     contrastee qu'une touche sous la bille : l'oeil ne sait plus ou regarder,
+     et c'est CA qui donnait l'impression de brouillon. */
+  var fog = ctx.createLinearGradient(0, HORIZON - H * 0.05, 0, HORIZON + H * 0.30);
+  fog.addColorStop(0, "rgba(233,223,208,.95)");
+  fog.addColorStop(0.45, "rgba(226,212,192,.50)");
+  fog.addColorStop(1, "rgba(220,205,185,0)");
+  ctx.fillStyle = fog;
+  ctx.fillRect(0, 0, W, HORIZON + H * 0.32);
+
+  if (flash > 0.01) {
+    ctx.fillStyle = "rgba(255,240,180," + (flash * 0.26) + ")";
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (redFlash > 0.01) {
+    ctx.fillStyle = "rgba(255,40,90," + (redFlash * 0.3) + ")";
+    ctx.fillRect(0, 0, W, H);
+  }
+  var vg = ctx.createRadialGradient(W / 2, H * 0.56, H * 0.3, W / 2, H * 0.56, H * 0.82);
+  vg.addColorStop(0, "rgba(0,0,0,0)");
+  vg.addColorStop(1, "rgba(70,48,28,.34)");
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+}
+requestAnimationFrame(frame);
+
+/* ================================================================ INPUT === */
+
+// le doigt pilote directement la position : c'est ce qui repond le mieux au pouce
+function screenToWorldX(sx) {
+  var s = FOCAL / Math.max(0.45, ball.z - cam.z);
+  return (sx - W * 0.5) / s + cam.x;
+}
+function doJump() {
+  if (!playing || jumping || jy > 0.01) return;
+  jumping = true; jvy = 0.125;
+  playChord([12, 19], "sine", 0.16, 0.09);
+  if (SAVE.vib && navigator.vibrate) navigator.vibrate(9);
+}
+
+var touchY0 = null;
+function onMove(e) {
+  if (!playing) return;
+  e.preventDefault();
+  var t = e.changedTouches ? e.changedTouches[0] : e;
+  if (e.type === "touchstart" || e.type === "mousedown") touchY0 = t.clientY;
+  else if (touchY0 !== null && touchY0 - t.clientY > 46) { doJump(); touchY0 = t.clientY; }
+  steerX = screenToWorldX(t.clientX);
+}
+cv.addEventListener("touchstart", onMove, { passive:false });
+cv.addEventListener("touchmove", onMove, { passive:false });
+cv.addEventListener("mousedown", function (e) { onMove(e); cv.__d = true; });
+cv.addEventListener("mousemove", function (e) { if (cv.__d) onMove(e); });
+window.addEventListener("mouseup", function () { cv.__d = false; });
+
+window.addEventListener("keydown", function (e) {
+  if (!playing) return;
+  if (e.key === "ArrowLeft")  { steerX = (steerX === null ? ball.x : steerX) - PITCH_X; e.preventDefault(); }
+  if (e.key === "ArrowRight") { steerX = (steerX === null ? ball.x : steerX) + PITCH_X; e.preventDefault(); }
+  if (e.code === "Space" || e.key === "ArrowUp") { doJump(); e.preventDefault(); }
+});
+
+function begin() {
+  demo = false;
+  musique(false);
+  var hud0 = document.getElementById("hud");
+  if (hud0) hud0.style.opacity = "1";
+  document.getElementById("shop").classList.remove("on");
+  document.getElementById("settings").classList.remove("on");
+  initAudio();
+  if (AC.state === "suspended") AC.resume();
+  if (master) master.gain.value = SAVE.snd ? 0.85 : 0;
+  reset();
+  playing = true;
+  startEl.classList.add("hidden");
+  overEl.classList.add("hidden");
+  setTimeout(function () { startEl.style.display = "none"; overEl.style.display = "none"; }, 320);
+}
+/* ECRAN DE CHARGEMENT.
+   Les visuels sont facultatifs : on essaie loading/1.jpg .. 8.jpg au demarrage,
+   on garde ceux qui repondent. Si aucun n'existe, la transition reste
+   instantanee comme avant — le jeu ne depend jamais d'un asset absent. */
+var VISUELS = [], visuelPrec = -1;
+(function chargerVisuels() {
+  for (var i = 1; i <= 8; i++) {
+    (function (n) {
+      var im = new Image();
+      im.onload = function () { VISUELS.push("loading/" + n + ".jpg"); };
+      im.src = "loading/" + n + ".jpg";
+    })(i);
+  }
+})();
+
+var ASTUCES = [
+  "Glisse vers le haut pour sauter par-dessus les bombes.",
+  "Les touches dorées forment un mot : enchaîne-les pour le jackpot.",
+  "Plus la bille grossit, plus chaque touche rapporte.",
+  "En descente tu prends de la vitesse. Anticipe.",
+  "Une bombe coûte une vie. Il t'en reste trois.",
+  "Chaque mot a sa couleur. Le suivant se voit déjà au loin.",
+  "Tes pièces sont conservées entre les parties.",
+  "Une grosse bille écrase plusieurs touches d'un coup : écoute l'accord."
+];
+
+var loadEl, loadBar, loadPct, loadTip;
+function ecranChargement(apres) {
+  if (!loadEl) {
+    loadEl = document.getElementById("load");
+    loadBar = document.getElementById("loadBar");
+    loadPct = document.getElementById("loadPct");
+    loadTip = document.getElementById("loadTip");
+  }
+  if (!VISUELS.length) { apres(); return; }   // aucun visuel : on enchaine direct
+
+  var i = VISUELS.length === 1 ? 0 : (visuelPrec + 1 + ((Math.random() * (VISUELS.length - 1)) | 0)) % VISUELS.length;
+  visuelPrec = i;
+  loadEl.style.backgroundImage = 'url("' + VISUELS[i] + '")';
+  loadTip.textContent = ASTUCES[(Math.random() * ASTUCES.length) | 0];
+  loadBar.style.width = "0%";
+  loadPct.textContent = "0%";
+  loadEl.classList.add("on");
+
+  /* Horloge independante de requestAnimationFrame : rAF est GELE quand l'onglet
+     passe en arriere-plan, et l'ecran de chargement ne se serait jamais ferme.
+     Un filet de securite ferme dans tous les cas. */
+  var t0 = performance.now(), duree = 900 + Math.random() * 500, fini = false;
+  function terminer() {
+    if (fini) return;
+    fini = true;
+    clearInterval(tic); clearTimeout(filet);
+    loadEl.classList.remove("on");
+    apres();
+  }
+  var tic = setInterval(function () {
+    var p = Math.min(1, (performance.now() - t0) / duree);
+    var e = p * p * (3 - 2 * p);
+    loadBar.style.width = (e * 100) + "%";
+    loadPct.textContent = Math.round(e * 100) + "%";
+    if (p >= 1) setTimeout(terminer, 160);
+  }, 40);
+  var filet = setTimeout(terminer, duree + 900);
+}
+
+/* Musique de menu. L'autoplay est bloque tant que l'utilisateur n'a pas
+   interagi : on tente donc de la lancer au premier contact, quel qu'il soit. */
+var MUS = null, musDemandee = false;
+function musique(actif) {
+  if (!MUS) MUS = document.getElementById("musique");
+  if (!MUS) return;
+  MUS.volume = 0.42;
+  if (actif && SAVE.snd) {
+    musDemandee = true;
+    var p = MUS.play();
+    if (p && p.catch) p.catch(function () { /* bloque : on reessaiera au 1er contact */ });
+  } else {
+    musDemandee = false;
+    MUS.pause();
+  }
+}
+["pointerdown", "touchstart", "keydown"].forEach(function (ev) {
+  window.addEventListener(ev, function reprise() {
+    if (musDemandee && MUS && MUS.paused && SAVE.snd) MUS.play().catch(function () {});
+  }, { passive: true });
+});
+
+/* REPRISE. Le joueur repart LA OU il est mort, score conserve, avec une courte
+   immunite. Le prix double a chaque usage : sans ca on achete l'infini. */
+function reprendre(gratuit) {
+  if (!gratuit) {
+    var px = prixGems();
+    if (SAVE.gems < px) return false;
+    SAVE.gems -= px; persist();
+  }
+  revives++;
+  var hud1 = document.getElementById("hud");
+  if (hud1) hud1.style.opacity = "1";
+  overEl.classList.add("hidden");
+  setTimeout(function () { overEl.style.display = "none"; }, 320);
+
+  dead = false; playing = true;
+  lives = 3; invuln = 150;              // ~2,5 s d'immunite au redemarrage
+  ball.y = 0; ball.vy = 0; jy = 0; jvy = 0; jumping = false;
+  ball.grace = 0;
+  // on remet la bille sur une touche existante de sa rangee
+  var r = rowAt(Math.round(ball.z / PITCH_Z));
+  if (r) {
+    var libres = [];
+    for (var c = 0; c < COLS; c++) if (r.slots[c]) libres.push(c);
+    if (libres.length) { ball.x = colX(libres[(libres.length / 2) | 0]); steerX = ball.x; }
+  }
+  bombs.length = 0;                     // on ne renait pas dans une bombe
+  motif = null; reposBombes = 6;        // ni au milieu d'une figure entamee
+  musique(false);
+  redFlash = 0; flash = 1;
+  playChord([0, 7, 12, 16], "triangle", 0.5, 0.14);
+  syncHud();
+  return true;
+}
+
+function tap(el, fn) {
+  if (!el) return;
+  function decl(e) { e.preventDefault(); initAudio(); playBois(); fn(); }
+  el.addEventListener("touchstart", decl, { passive:false });
+  el.addEventListener("click", decl);
+}
+/* Pastille diamant. L'emoji 💎 change de dessin selon le systeme et jure avec
+   les gemmes turquoise des paliers ; un trace vectoriel reste identique
+   partout et se met a l'echelle du texte qui l'accompagne. */
+var ICO_DIAMANT =
+  '<svg class="dia" viewBox="0 0 24 24" aria-hidden="true">'
+  + '<polygon points="2,9 6,3 9,9"    fill="#3fa8c9"/>'
+  + '<polygon points="6,3 18,3 15,9 9,9" fill="#bff2ff"/>'
+  + '<polygon points="18,3 22,9 15,9" fill="#68d4ee"/>'
+  + '<polygon points="2,9 9,9 12,21"  fill="#2b8fb4"/>'
+  + '<polygon points="9,9 15,9 12,21" fill="#8ee4fa"/>'
+  + '<polygon points="15,9 22,9 12,21" fill="#1f7ea3"/>'
+  + '</svg>';
+
+/* Les images posees par le script (etoiles de notation, sacs de diamants) ne
+   sont demandees qu'a l'affichage. On les decode des le demarrage pour qu'aucune
+   n'arrive apres coup dans une mise en page deja calculee. */
+["etoile_pleine", "etoile_vide", "gem_s", "gem_m", "gem_l"].forEach(function (f) {
+  var pre = new Image(); pre.src = "ui/" + f + ".png";
+});
+
+/* Un solde a cinq ou six chiffres poussait le titre du panneau a se tronquer
+   ("Bouti..."). L'abreviation en K/M est la convention du jeu mobile : elle
+   borne la largeur du compteur quel que soit le montant. */
+function formatNombre(n) {
+  if (n < 10000) return String(n);
+  if (n < 1000000) return (Math.floor(n / 100) / 10).toFixed(1).replace(".", ",") + "K";
+  return (Math.floor(n / 100000) / 10).toFixed(1).replace(".", ",") + "M";
+}
+
+function $(id) { return document.getElementById(id); }
+
+function majBourse() {
+  ["gemsShop", "gemsMenu", "gemsPays", "gemsClav"].forEach(function (nid) {
+    var n = $(nid); if (n) n.textContent = formatNombre(SAVE.gems);
+  });
+  ["gemMenu","gemShop"].forEach(function (id) { var e=$(id); if(e) e.textContent=SAVE.gems; });
+  var ln = $("lvlNum"), lf = $("lvlFill");
+  if (ln) ln.textContent = SAVE.level;
+  if (lf) lf.style.width = Math.min(100, SAVE.xp / xpRequis(SAVE.level) * 100) + "%";
+  $("purseMenu").textContent = formatNombre(SAVE.purse);
+  $("purseShop").textContent = formatNombre(SAVE.purse);
+  $("setBest").textContent = localStorage.getItem("thock_best") || "0";
+}
+
+function carte(it, type) {
+  var poss = (type === "k" ? SAVE.keys : SAVE.balls).indexOf(it.id) >= 0;
+  var eq = (type === "k" ? SAVE.key : SAVE.ball) === it.id;
+  var apercu = (type === "k")
+    ? '<div class="sw" style="background:repeating-linear-gradient(135deg,hsl(' + it.a.h + ',' + it.a.s + '%,' + it.a.l + '%) 0 13px,hsl(' + it.b.h + ',' + it.b.s + '%,' + it.b.l + '%) 13px 26px)"></div>'
+    : '<div class="sw socle"><canvas class="apercu" width="260" height="124" data-bille="' + it.id + '"></canvas></div>';
+  var btn = eq   ? '<button class="act on">ÉQUIPÉ</button>'
+          : poss ? '<button class="act use">UTILISER</button>'
+          : (SAVE.purse >= it.prix ? '<button class="act buy">' + it.prix + ' $</button>'
+                                   : '<button class="act no">' + it.prix + ' $</button>');
+  return '<div class="card' + (eq ? " eq" : "") + '" data-t="' + type + '" data-id="' + it.id + '">'
+       + apercu + '<div class="nm">' + it.nom + '</div>' + btn + '</div>';
+}
+
+/* Chaque carte contient un vrai rendu de la bille sur un socle : un aplat de
+   couleur ne montre ni le galbe ni, pour les drapeaux, les bandes. */
+function peindreApercus() {
+  var cs = document.querySelectorAll("canvas.apercu");
+  for (var i = 0; i < cs.length; i++) {
+    var cv2 = cs[i], id = cv2.getAttribute("data-bille");
+    var g2 = cv2.getContext("2d");
+    var W2 = cv2.width, H2 = cv2.height;
+    g2.clearRect(0, 0, W2, H2);
+    var bille = null;
+    for (var a = 0; a < BALLS.length; a++) if (BALLS[a].id === id) bille = BALLS[a];
+    if (!bille) for (var b = 0; b < PAYS.length; b++) if (PAYS[b].id === id) bille = { flag: PAYS[b].b, h: PAYS[b].h };
+    if (!bille && id === "__globe") bille = { globe: true };
+    if (!bille) continue;
+    var rond = cv2.classList.contains("rond");
+    if (rond) {                     // globe : pas de socle, la sphere remplit la case
+      peindreBille(g2, W2 / 2, H2 / 2, W2 * 0.44, bille, bille.flag ? 0 : 0.5, bille.flag ? 0 : 0.9, 0);
+      continue;
+    }
+    var R2 = 36, cx2 = W2 / 2, cy2 = H2 * 0.42;
+    // socle
+    g2.fillStyle = "rgba(0,0,0,.38)";
+    g2.beginPath(); g2.ellipse(cx2, cy2 + R2 + 12, R2 * 1.05, R2 * 0.26, 0, 0, Math.PI * 2); g2.fill();
+    var so = g2.createLinearGradient(0, cy2 + R2 + 2, 0, cy2 + R2 + 22);
+    so.addColorStop(0, "#7a4a22"); so.addColorStop(1, "#3d2410");
+    g2.fillStyle = so;
+    g2.beginPath(); g2.ellipse(cx2, cy2 + R2 + 8, R2 * 0.92, R2 * 0.22, 0, 0, Math.PI * 2); g2.fill();
+    peindreBille(g2, cx2, cy2, R2, bille, bille.flag ? 0 : 0.5, bille.flag ? 0 : 0.9, 0);
+  }
+}
+
+function majBoutique() {
+  $("gridGems").innerHTML = PACKS.map(function (p) {
+    return '<div class="card pack' + (p.best ? " best" : "") + '" data-t="g" data-id="' + p.id + '">'
+      + (p.best ? '<div class="ruban">MEILLEURE OFFRE</div>' : "")
+      + '<div class="sw tresor"><img src="ui/' + p.img + '.png" alt=""></div>'
+      + '<div class="nm">' + ICO_DIAMANT + p.n + '</div>'
+      + '<button class="act buy">' + p.eur + '</button></div>';
+  }).join("");
+  $("gridBalls").innerHTML = BALLS.map(function (b) { return carte(b, "b"); }).join("");
+  $("gridKeys").innerHTML = KEYSETS.map(function (k) { return carte(k, "k"); }).join("");
+  var reste = pubsRestantes();
+  $("gridGratuit").innerHTML =
+    '<div class="card banniere" data-t="cad" data-id="__cadeau">'
+    + '<div class="vign emo">🎁</div>'
+    + '<div class="txt"><div class="nm">Cadeau du jour</div>'
+    + '<div class="sub">' + (cadeauDispo()
+        ? CADEAU_PIECES + " pièces + " + CADEAU_GEMS + " diamant"
+        : "Déjà pris — reviens demain") + '</div>'
+    + '<button class="act ' + (cadeauDispo() ? "buy" : "no") + '">'
+    + (cadeauDispo() ? "OUVRIR" : "PRIS") + '</button></div></div>'
+
+    + '<div class="card banniere" data-t="pub" data-id="__pub">'
+    + '<div class="vign emo">📺</div>'
+    + '<div class="txt"><div class="nm">' + GEMS_PAR_PUB + ' diamants par pub</div>'
+    + '<div class="sub">' + reste + " restante" + (reste > 1 ? "s" : "") + " aujourd'hui" + '</div>'
+    + '<button class="act ' + (reste > 0 ? "buy" : "no") + '">'
+    + (reste > 0 ? "REGARDER" : "DEMAIN") + '</button></div></div>';
+
+  var possedes = 0;
+  for (var pz2 = 0; pz2 < PAYS.length; pz2++) if (SAVE.balls.indexOf(PAYS[pz2].id) >= 0) possedes++;
+  $("gridGlobe").innerHTML =
+    '<div class="card banniere" data-t="w" data-id="__globe">'
+    + '<canvas class="apercu rond" width="150" height="150" data-bille="__globe"></canvas>'
+    + '<div class="txt"><div class="nm">Drapeaux du monde</div>'
+    + '<div class="sub">' + possedes + " débloqué" + (possedes > 1 ? "s" : "") + " sur " + PAYS.length + '</div>'
+    + '<button class="act buy">CHOISIR</button></div></div>';
+  $("gridPays").innerHTML = PAYS.map(function (pz) {
+    return carte({ id: pz.id, nom: pz.nom, prix: PRIX_PAYS }, "p");
+  }).join("");
+  $("pursePays").textContent = formatNombre(SAVE.purse);
+  $("purseClav").textContent = formatNombre(SAVE.purse);
+
+  var kEq = KEYSETS[0];
+  for (var kk = 0; kk < KEYSETS.length; kk++) if (KEYSETS[kk].id === SAVE.key) kEq = KEYSETS[kk];
+  var raies = "repeating-linear-gradient(135deg,hsl(" + kEq.a.h + "," + kEq.a.s + "%," + kEq.a.l
+            + "%) 0 13px,hsl(" + kEq.b.h + "," + kEq.b.s + "%," + kEq.b.l + "%) 13px 26px)";
+  $("gridClaviers").innerHTML =
+    '<div class="card banniere" data-t="c" data-id="__claviers">'
+    + '<div class="vign" style="background:' + raies + '"></div>'
+    + '<div class="txt"><div class="nm">Claviers</div>'
+    + '<div class="sub">' + SAVE.keys.length + " débloqué" + (SAVE.keys.length > 1 ? "s" : "")
+    + " sur " + KEYSETS.length + '</div>'
+    + '<button class="act buy">CHOISIR</button></div></div>';
+  peindreApercus();
+  majBourse();
+}
+
+function clicCarte(e) {
+  var c = e.target.closest ? e.target.closest(".card") : null;
+  if (!c) return;
+  var type = c.getAttribute("data-t"), id = c.getAttribute("data-id");
+
+  if (type === "cad") { prendreCadeau(); return; }
+  if (type === "pub") { pubRecompensee(); return; }
+  if (type === "w") { playBois(); ouvrir("pays"); return; }      // le globe ouvre la liste
+  if (type === "c") { playBois(); ouvrir("claviers"); return; }  // idem pour les claviers
+
+  if (type === "g") {                                   // pack de diamants
+    for (var pk = 0; pk < PACKS.length; pk++) {
+      if (PACKS[pk].id === id) { ouvrirPaiement(PACKS[pk]); return; }
+    }
+    return;
+  }
+
+  var liste = type === "b" ? BALLS : (type === "p" ? PAYS : KEYSETS);
+  var it = null;
+  for (var i = 0; i < liste.length; i++) if (liste[i].id === id) it = liste[i];
+  if (!it) return;
+  if (type === "p") it = { id: it.id, nom: it.nom, prix: PRIX_PAYS };
+  var poss = (type === "k" ? SAVE.keys : SAVE.balls);
+  playBois();
+  if (poss.indexOf(id) < 0) {
+    if (SAVE.purse < it.prix) return;
+    SAVE.purse -= it.prix; poss.push(id);
+    playChord([0, 4, 7, 12], "triangle", 0.4, 0.12);
+  }
+  if (type === "k") SAVE.key = id; else SAVE.ball = id;
+  persist(); majBoutique();
+}
+$("gridGems").addEventListener("click", clicCarte);
+$("gridBalls").addEventListener("click", clicCarte);
+$("gridPays").addEventListener("click", clicCarte);
+$("gridGlobe").addEventListener("click", clicCarte);
+$("gridClaviers").addEventListener("click", clicCarte);
+$("gridGratuit").addEventListener("click", clicCarte);
+$("gridKeys").addEventListener("click", clicCarte);
+
+function ouvrir(id) { $(id).classList.add("on");
+  if (id === "shop" || id === "pays" || id === "claviers") majBoutique(); }
+function fermer(id) { $(id).classList.remove("on"); majBourse(); }
+Array.prototype.forEach.call(["icoGems", "icoPurse", "icoMenuGem", "icoPaysGem", "icoClavGem"], function (nid) {
+  var n = $(nid); if (n) n.innerHTML = ICO_DIAMANT;
+});
+Array.prototype.forEach.call(document.querySelectorAll("[data-close]"), function (b) {
+  tap(b, function () { fermer(b.getAttribute("data-close")); });
+});
+
+function bascule(el, cle) {
+  if (SAVE[cle]) el.classList.add("on"); else el.classList.remove("on");
+  tap(el, function () {
+    SAVE[cle] = !SAVE[cle];
+    el.classList.toggle("on", SAVE[cle]);
+    if (master) master.gain.value = SAVE.snd ? 0.85 : 0;
+    musique(SAVE.snd && !playing);
+    persist();
+  });
+}
+bascule($("tSnd"), "snd");
+bascule($("tVib"), "vib");
+
+tap($("bWipe"), function () {
+  localStorage.removeItem("thock_save");
+  localStorage.removeItem("thock_best");
+  SAVE = { purse:0, balls:["blanc"], keys:["caramel"], ball:"blanc", key:"caramel", snd:true, vib:true, level:1, xp:0, gems:3 };
+  persist(); majBoutique(); majBourse();
+});
+
+tap($("bPlay"), function () { ecranChargement(begin); });
+tap($("bShop"), function () { ouvrir("shop"); });
+tap($("bSet"),  function () { ouvrir("settings"); });
+tap($("bAgain"), function () { ecranChargement(begin); });
+/* Un seul bouton REPARTIR qui ouvre le choix : empiler pub + diamants +
+   rejouer + menu faisait quatre boutons a l'ecran, c'etait illisible. */
+/* TUNNEL DE PAIEMENT — MAQUETTE.
+   Aucun encaissement n'a lieu ici. Un vrai achat exige un serveur qui cree la
+   session de paiement (la cle secrete ne peut pas vivre dans la page), et sur
+   les stores Apple/Google la monnaie virtuelle DOIT passer par leur achat
+   integre, pas par un prestataire externe. */
+var packEnCours = null;
+function ouvrirPaiement(pk) {
+  packEnCours = pk;
+  $("payTitre").textContent = pk.n + " diamants";
+  $("payPrix").textContent = pk.eur;
+  $("payImg").src = "ui/" + pk.img + ".png";
+  $("payEtat").textContent = "";
+  $("payValider").style.display = "block";
+  $("paiement").classList.add("on");
+}
+function fermerPaiement() { $("paiement").classList.remove("on"); }
+function validerPaiement() {
+  if (!packEnCours) return;
+  $("payEtat").textContent = "Connexion au paiement...";
+  $("payValider").style.display = "none";
+  setTimeout(function () {
+    SAVE.gems += packEnCours.n;
+    persist(); majBoutique();
+    playChord([0, 5, 9, 12], "triangle", 0.5, 0.14);
+    $("payEtat").textContent = "+" + packEnCours.n + " diamants crédités";
+    setTimeout(fermerPaiement, 900);
+  }, 700);
+}
+
+/* ================================================== RECOMPENSES GRATUITES ===
+   Deux robinets distincts. Le cadeau du jour ne coute rien et sert a faire
+   revenir ; la pub a recompense monetise le joueur qui ne payera jamais.
+   Le quota quotidien n'est pas de la generosite mal placee : sans plafond, un
+   joueur peut vider la boutique en une soiree et n'a plus aucune raison
+   d'acheter des diamants. */
+var PUBS_PAR_JOUR = 5, GEMS_PAR_PUB = 3;
+var CADEAU_PIECES = 150, CADEAU_GEMS = 1;
+
+function jourCourant() {
+  var d = new Date();
+  return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+}
+function cadeauDispo() { return SAVE.jourCadeau !== jourCourant(); }
+function pubsRestantes() {
+  if (SAVE.jourPubs !== jourCourant()) return PUBS_PAR_JOUR;
+  return Math.max(0, PUBS_PAR_JOUR - SAVE.nbPubs);
+}
+
+/* EMPLACEMENT DU SDK DE PUB. Aujourd'hui la recompense tombe apres un simple
+   delai : il n'y a aucune regie branchee. Le vrai appel devra n'appeler
+   "fini" QUE si la video a ete regardee jusqu'au bout — sinon la recompense
+   se reclame en fermant la pub aussitot. */
+function lancerPub(fini) {
+  playBois();
+  setTimeout(fini, 600);
+}
+
+function prendreCadeau() {
+  if (!cadeauDispo()) { playHurt(); return; }
+  SAVE.jourCadeau = jourCourant();
+  SAVE.purse += CADEAU_PIECES; SAVE.gems += CADEAU_GEMS;
+  persist(); majBoutique();
+  playChord([0, 4, 7, 12], "triangle", 0.45, 0.13);
+}
+
+function pubRecompensee() {
+  if (pubsRestantes() <= 0) { playHurt(); return; }
+  lancerPub(function () {
+    if (SAVE.jourPubs !== jourCourant()) { SAVE.jourPubs = jourCourant(); SAVE.nbPubs = 0; }
+    SAVE.nbPubs++;
+    SAVE.gems += GEMS_PAR_PUB;
+    persist(); majBoutique();
+    playChord([0, 5, 9, 12], "triangle", 0.45, 0.13);
+  });
+}
+
+function ouvrirChoix() {
+  var px = prixGems();
+  $("prixGems").textContent = px;
+  $("cGems").style.opacity = SAVE.gems >= px ? "1" : ".45";
+  $("choix").classList.add("on");
+}
+function fermerChoix() { $("choix").classList.remove("on"); }
+
+tap($("bRepartir"), ouvrirChoix);
+tap($("cFermer"), fermerChoix);
+tap($("payFermer"), fermerPaiement);
+tap($("payValider"), validerPaiement);
+tap($("cPub"), function () {          // emplacement du SDK de pub a recompense
+  fermerChoix(); reprendre(true);
+});
+tap($("cGems"), function () {
+  if (reprendre(false)) fermerChoix(); else playHurt();
+});
+tap($("bMenu"), function () { ecranChargement(retourMenu); });
+function retourMenu() {
+  musique(true);
+  overEl.style.display = "none";
+  startEl.style.display = "flex";
+  startEl.classList.remove("hidden");
+  majBourse();
+  lancerDemo();
+}
+majBourse();
+
+reset();
+
+// demo d'accueil
+function lancerDemo() {
+  initAudio();
+  reset();
+  demo = true; playing = true;
+  if (master) master.gain.value = 0;      // muet tant qu'on n'a pas joue
+}
+setTimeout(lancerDemo, 400);
+setTimeout(function () { musique(true); }, 500);
+</script>
+
+
+</body></html>
