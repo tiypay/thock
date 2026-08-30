@@ -15,7 +15,13 @@
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { height:100%; overflow:hidden; background:#2a1810; overscroll-behavior:none; touch-action:none; }
   body { font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; user-select:none; }
-  canvas { display:block; width:100vw; height:100vh; }
+  /* Le jeu est cadre pour un telephone. Sur un ecran large, prendre 100vw
+     etalait la scene et donnait un zoom enorme. On enferme le jeu ET ses
+     surcouches dans une colonne 9:16 centree, quelle que soit la fenetre. */
+  /* 0.462 = 375/812, le format pour lequel le jeu est cadre. 9:16 aurait
+     donne une colonne trop trapue et un plateau encore trop large. */
+  :root { --jeuL: min(100vw, calc(100vh * 0.462));
+          --jeuH: min(100vh, calc(100vw / 0.462)); }
 
   #hud { position:fixed; inset:0; pointer-events:none;
          padding:calc(env(safe-area-inset-top,8px) + 10px) 14px 14px; }
@@ -337,6 +343,16 @@
   .dia { width:1.05em; height:1.05em; vertical-align:-.16em; margin-right:.12em; }
   .purse.gem { padding-right:12px; }
   .purse.gem .dia { width:21px; height:21px; vertical-align:-4px; margin-right:2px; }
+  /* Confinement au format telephone. Doit rester la DERNIERE regle : #hud,
+     .sheet et consorts redeclarent inset:0 plus haut, et a specificite egale
+     c'est l'ordre source qui gagne. Place avant, le centrage sautait mais le
+     transform survivait — tout se retrouvait decale d'une demi-hauteur. */
+  canvas#c, #hud, .screen, .sheet, .modale, #load {
+    position:fixed; inset:auto; left:50%; top:50%;
+    transform:translate(-50%, -50%);
+    width:var(--jeuL); height:var(--jeuH);
+  }
+  canvas#c { display:block; }
 </style>
 </head>
 <body>
@@ -394,7 +410,7 @@
 
 <div id="start" class="screen">
   <h1>THOCK</h1>
-  <p>glisse pour diriger. glisse vers le haut pour sauter.</p>
+  <p>glisse pour diriger. appuie pour sauter.</p>
   <div class="lvl" style="margin:16px 0 6px">
     <div class="etoile"><b id="lvlNum">14</b></div>
     <div class="xpbar"><div class="xpfill" id="lvlFill" style="width: 53.8095%;"></div></div>
@@ -811,8 +827,10 @@ var camUp = CAM_UP;                  // leger flottement vertical
 var FOCAL = 0, HORIZON = 0, S0 = 0;
 
 function resize() {
-  var w = window.innerWidth || document.documentElement.clientWidth || 0;
-  var h = window.innerHeight || document.documentElement.clientHeight || 0;
+  // on mesure la boite reelle du canvas : depuis qu'il est enferme dans une
+  // colonne 9:16, elle ne vaut plus la fenetre
+  var r = cv.getBoundingClientRect();
+  var w = Math.round(r.width), h = Math.round(r.height);
   if (w < 1 || h < 1) return false;
   DPR = Math.min(window.devicePixelRatio || 1, 2.5);
   W = w; H = h;
@@ -1684,17 +1702,19 @@ var VN, VU;
 
 /* Dessin de la sphere isole dans sa propre fonction : la boutique s'en sert
    pour afficher un VRAI apercu de la bille au lieu d'un aplat de couleur. */
-/* PLACAGE DE DRAPEAU SUR SPHERE, pixel par pixel.
-   L'ancien rendu peignait des bandes plates de largeur constante puis les
-   faisait glisser. Deux consequences mesurables. Les bandes pavaient toute la
-   largeur du disque, donc la derniere couleur reapparaissait du cote oppose.
-   Et le glissement etait pilote par rotZ, qui ne bouge QUE quand la bille
-   braque : en ligne droite la texture etait strictement immobile, d'ou une
-   bille qui se lisait comme une vignette collee et non comme une boule.
-   Ici on reconstruit la normale de chaque pixel, on lui applique la rotation
-   INVERSE de la bille (rx = roulement avant, rz = roulis lateral), et on lit
-   la couleur sur la sphere au repos. Le drapeau s'enroule pour de vrai, se
-   comprime aux limbes, et tourne quel que soit le sens du deplacement. */
+/* PLACAGE DE DRAPEAU SUR SPHERE.
+   Version precedente : on appliquait a chaque pixel la rotation inverse
+   COMPLETE de la bille, sur deux axes. Physiquement juste, visuellement
+   inutilisable — tourner autour de X fait basculer les poles, si bien qu'apres
+   un demi-tour la longitude court dans l'autre sens et le drapeau se lit EN
+   MIROIR. Comme la bille roule en permanence, chaque drapeau alternait entre
+   endroit et envers. La France finissait par ressembler a l'Irlande retournee.
+   Desormais un SEUL axe de rotation, choisi selon l'orientation des bandes :
+   vertical pour un tricolore vertical, horizontal sinon. Le decoupage reste
+   monotone quel que soit l'angle, donc le miroir devient impossible. Le
+   drapeau reste lisible en continu — ce qui compte pour un objet de boutique
+   qu'on achete pour son pays. Il fait deux tours de sphere : l'hemisphere
+   visible montre alors exactement un drapeau complet. */
 var SPH_MAX = 192, sphCv = null, sphCx = null, sphImg = null;
 
 function peindreSphereDrapeau(ctx2, cx, cy, R, flag, horiz, rx, rz) {
@@ -1718,8 +1738,9 @@ function peindreSphereDrapeau(ctx2, cx, cy, R, flag, horiz, rx, rz) {
     }
   }
   var n = rgb.length, dat = sphImg.data, demi = S / 2;
-  var cX = Math.cos(-rx), sX = Math.sin(-rx);
-  var cZ = Math.cos(-rz), sZ = Math.sin(-rz);
+  // le roulement avant domine largement le roulis lateral : c'est lui qui
+  // anime le drapeau, sinon la texture reste figee en ligne droite
+  var spin = rx;
 
   for (var py = 0; py < S; py++) {
     var ny = (py + 0.5 - demi) / demi;
@@ -1729,20 +1750,13 @@ function peindreSphereDrapeau(ctx2, cx, cy, R, flag, horiz, rx, rz) {
       var nx = (px + 0.5 - demi) / demi;
       var d2 = nx * nx + ny * ny;
       if (d2 > 1) { dat[i + 3] = 0; continue; }
-      // normale du point de surface : z pointe vers la camera
-      var wx = nx, wy = -ny, wz = Math.sqrt(1 - d2);
-      // rotation inverse : d'abord le roulis lateral, puis le roulement avant
-      var ax = wx * cZ - wy * sZ, ay = wx * sZ + wy * cZ;
-      var by = ay * cX - wz * sX, bz = ay * sX + wz * cX;
-      var b;
-      if (horiz) {                            // bandes par latitude, pole a pole
-        var la = by < -1 ? -1 : (by > 1 ? 1 : by);
-        b = ((0.5 - Math.asin(la) / Math.PI) * n) | 0;
-      } else {                                // bandes par longitude, deux tours
-        var u = Math.atan2(ax, bz) / Math.PI + 0.5;
-        u -= Math.floor(u);
-        b = (u * n) | 0;
-      }
+      var nz = Math.sqrt(1 - d2);
+      // un seul angle : longitude autour de l'axe vertical pour des bandes
+      // verticales, autour de l'axe horizontal pour des bandes horizontales
+      var phi = horiz ? Math.atan2(ny, nz) : Math.atan2(nx, nz);
+      var u = (phi + spin) / Math.PI + 0.5;
+      u -= Math.floor(u);
+      var b = (u * n) | 0;
       if (b < 0) b = 0; else if (b >= n) b = n - 1;
       var c = rgb[b];
       dat[i] = c[0]; dat[i + 1] = c[1]; dat[i + 2] = c[2]; dat[i + 3] = 255;
@@ -2180,7 +2194,10 @@ requestAnimationFrame(frame);
 // le doigt pilote directement la position : c'est ce qui repond le mieux au pouce
 function screenToWorldX(sx) {
   var s = FOCAL / Math.max(0.45, ball.z - cam.z);
-  return (sx - W * 0.5) / s + cam.x;
+  // sx vient de l'evenement, donc en coordonnees fenetre ; le canvas est
+  // centre et peut etre plus etroit qu'elle, d'ou le decalage a retirer
+  var g = cv.getBoundingClientRect();
+  return (sx - g.left - W * 0.5) / s + cam.x;
 }
 function doJump() {
   if (!playing || jumping || jy > 0.01) return;
@@ -2189,20 +2206,45 @@ function doJump() {
   if (SAVE.vib && navigator.vibrate) navigator.vibrate(9);
 }
 
-var touchY0 = null;
+/* APPUI = SAUT, GLISSE = DIRECTION.
+   Le saut demandait un balayage vers le haut, alors que le pouce sert deja a
+   diriger lateralement : les deux gestes se marchaient dessus. Desormais un
+   appui bref n'importe ou fait sauter, et seule une glisse dirige.
+   Le point clef : on ne touche PAS a steerX tant que le doigt n'a pas bouge
+   au-dela du seuil. Sans ca, taper pour sauter dans un coin de l'ecran
+   arracherait la bille jusqu'a ce coin. */
+var appuiT = 0, appuiX = 0, appuiY = 0, aBouge = false;
+var SEUIL_GLISSE = 12, DUREE_TAP = 300;
+
+function pointDe(e) { return e.changedTouches ? e.changedTouches[0] : e; }
+
+function onDown(e) {
+  if (!playing) return;
+  e.preventDefault();
+  var t = pointDe(e);
+  appuiT = performance.now(); appuiX = t.clientX; appuiY = t.clientY; aBouge = false;
+}
 function onMove(e) {
   if (!playing) return;
   e.preventDefault();
-  var t = e.changedTouches ? e.changedTouches[0] : e;
-  if (e.type === "touchstart" || e.type === "mousedown") touchY0 = t.clientY;
-  else if (touchY0 !== null && touchY0 - t.clientY > 46) { doJump(); touchY0 = t.clientY; }
+  var t = pointDe(e);
+  if (!aBouge &&
+      Math.abs(t.clientX - appuiX) < SEUIL_GLISSE &&
+      Math.abs(t.clientY - appuiY) < SEUIL_GLISSE) return;
+  aBouge = true;
   steerX = screenToWorldX(t.clientX);
 }
-cv.addEventListener("touchstart", onMove, { passive:false });
+function onUp(e) {
+  if (!playing) return;
+  if (!aBouge && performance.now() - appuiT < DUREE_TAP) doJump();
+}
+
+cv.addEventListener("touchstart", onDown, { passive:false });
 cv.addEventListener("touchmove", onMove, { passive:false });
-cv.addEventListener("mousedown", function (e) { onMove(e); cv.__d = true; });
+cv.addEventListener("touchend", onUp, { passive:false });
+cv.addEventListener("mousedown", function (e) { onDown(e); cv.__d = true; });
 cv.addEventListener("mousemove", function (e) { if (cv.__d) onMove(e); });
-window.addEventListener("mouseup", function () { cv.__d = false; });
+window.addEventListener("mouseup", function (e) { if (cv.__d) onUp(e); cv.__d = false; });
 
 window.addEventListener("keydown", function (e) {
   if (!playing) return;
@@ -2243,7 +2285,7 @@ var VISUELS = [], visuelPrec = -1;
 })();
 
 var ASTUCES = [
-  "Glisse vers le haut pour sauter par-dessus les bombes.",
+  "Appuie n'importe ou pour sauter par-dessus les bombes.",
   "Les touches dorées forment un mot : enchaîne-les pour le jackpot.",
   "Plus la bille grossit, plus chaque touche rapporte.",
   "En descente tu prends de la vitesse. Anticipe.",
