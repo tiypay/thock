@@ -353,6 +353,27 @@
     width:var(--jeuL); height:var(--jeuH);
   }
   canvas#c { display:block; }
+  /* Bouton de saut. Taper l'ecran ne suffisait pas : le pouce est deja pose
+     pour diriger, et un doigt qui glisse ne produit jamais d'appui bref. Il
+     faut donc une cible dediee, hors du chemin du pouce directeur.
+     pointer-events:auto est indispensable — #hud est transparent aux clics. */
+  #bSaut { position:absolute; right:16px;
+           bottom:calc(74px + env(safe-area-inset-bottom,0px));
+           width:78px; height:78px; border-radius:50%;
+           pointer-events:auto; display:none; z-index:3;
+           background:linear-gradient(180deg,#ffbe5e 0%,#f8901f 46%,#d2660c 100%);
+           border:3px solid #ffd9a0;
+           box-shadow:0 5px 0 #9c4a06, 0 9px 16px rgba(0,0,0,.45),
+                      inset 0 3px 0 rgba(255,255,255,.55); }
+  body.enJeu #bSaut { display:block; }
+  #bSaut i { display:block; width:26px; height:26px; margin:26px auto 0;
+             border-left:8px solid #fff; border-top:8px solid #fff;
+             border-radius:4px; transform:rotate(45deg);
+             box-shadow:-3px -3px 0 rgba(0,0,0,.18); }
+  #bSaut:active { transform:translateY(4px);
+                  box-shadow:0 1px 0 #9c4a06, 0 4px 9px rgba(0,0,0,.45),
+                             inset 0 3px 0 rgba(255,255,255,.55); }
+  @media (prefers-reduced-motion: reduce) { #bSaut { transition:none; } }
 </style>
 </head>
 <body>
@@ -369,6 +390,7 @@
   <div id="wordWrap"><div id="word"></div></div>
   <div id="streak" class="go">x3<span class="sub">SERIE</span></div>
   <div id="combo" class="go">JACKPOT +400</div>
+  <button id="bSaut" class="rnd" aria-label="Sauter"><i></i></button>
   <div id="sizewrap">
     <div id="sizelbl">TAILLE</div>
     <div id="sizebar"><div id="sizefill" style="width: 100%;"></div></div>
@@ -1499,6 +1521,7 @@ function afficherNote(n) {
 function die() {
   if (dead) return;
   dead = true; playing = false;
+  majBoutonSaut();
 
   /* En mode demo (menu), la partie n'appartient pas au joueur : pas d'ecran de
      fin, pas de vibration, pas de pieces creditees et surtout pas de meilleur
@@ -2199,6 +2222,10 @@ function screenToWorldX(sx) {
   var g = cv.getBoundingClientRect();
   return (sx - g.left - W * 0.5) / s + cam.x;
 }
+function majBoutonSaut() {
+  document.body.classList.toggle("enJeu", playing && !demo);
+}
+
 function doJump() {
   if (!playing || jumping || jy > 0.01) return;
   jumping = true; jvy = 0.125;
@@ -2239,6 +2266,16 @@ function onUp(e) {
   if (!aBouge && performance.now() - appuiT < DUREE_TAP) doJump();
 }
 
+(function () {
+  var b = document.getElementById("bSaut");
+  function saut(e) { e.preventDefault(); e.stopPropagation(); doJump(); }
+  // touchstart ET mousedown : sur mobile on veut la reponse des l'appui,
+  // pas au relachement, sinon le saut arrive trop tard pour la bombe
+  b.addEventListener("touchstart", saut, { passive:false });
+  b.addEventListener("mousedown", saut);
+  b.addEventListener("click", function (e) { e.preventDefault(); });
+})();
+
 cv.addEventListener("touchstart", onDown, { passive:false });
 cv.addEventListener("touchmove", onMove, { passive:false });
 cv.addEventListener("touchend", onUp, { passive:false });
@@ -2265,6 +2302,7 @@ function begin() {
   if (master) master.gain.value = SAVE.snd ? 0.85 : 0;
   reset();
   playing = true;
+  majBoutonSaut();
   startEl.classList.add("hidden");
   overEl.classList.add("hidden");
   setTimeout(function () { startEl.style.display = "none"; overEl.style.display = "none"; }, 320);
@@ -2371,6 +2409,7 @@ function reprendre(gratuit) {
   setTimeout(function () { overEl.style.display = "none"; }, 320);
 
   dead = false; playing = true;
+  majBoutonSaut();
   lives = 3; invuln = 150;              // ~2,5 s d'immunite au redemarrage
   ball.y = 0; ball.vy = 0; jy = 0; jvy = 0; jumping = false;
   ball.grace = 0;
@@ -2730,6 +2769,7 @@ function lancerDemo() {
   initAudio();
   reset();
   demo = true; playing = true;
+  majBoutonSaut();
   if (master) master.gain.value = 0;      // muet tant qu'on n'a pas joue
 }
 setTimeout(lancerDemo, 400);
