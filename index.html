@@ -991,7 +991,7 @@ function newKey(row, col, letter, bonus) {
 var platEtat = null, platVide = 0;
 
 function poserPlateforme(index, slots) {
-  if (platVide > 0) { platVide--; return; }          // le vide entre deux ilots
+  if (platVide > 0) { platVide--; return []; }        // le vide entre deux ilots
 
   if (!platEtat || index > platEtat.fin) {
     var larg = 3 + ((Math.random() * 2) | 0);
@@ -1003,19 +1003,22 @@ function poserPlateforme(index, slots) {
       pente: 0.15 + Math.random() * 0.10
     };
   }
-  var p = platEtat, mid = (p.lo + p.hi) / 2;
+  var p = platEtat, mid = (p.lo + p.hi) / 2, poses = [];
   for (var c = p.lo; c <= p.hi; c++) {
     var k = newKey(index, c, ALPHA.charAt((Math.random() * 26) | 0));
     k.dy = 0.95 + p.sens * (c - mid) * p.pente;
     slots[c] = k;
+    poses.push(c);
   }
-  /* UNE rangee de vide, pas deux. Mesure : un saut porte 3,65 unites a la
-     vitesse du niveau. Un vide d'une rangee en demande 2,14 — 70 % de marge.
-     Deux rangees en demandent 3,21, soit 14 % : injouable en pratique, il
-     fallait declencher le saut a l'image pres. Trois rangees sont hors de
-     portee. Au sol le vide reste mortel : 33 images sans support contre
-     6 images de sursis. */
-  if (index >= p.fin) platVide = 1;
+  /* DEUX rangees de vide. J'avais essaye une seule : le saut passait large,
+     mais le vide n'etait plus mortel du tout. hasSupport cherche une touche
+     dans un rayon de 0,62 en profondeur ET regarde les rangees voisines ; un
+     trou de 1,07 est plus etroit que les deux rayons cumules, donc la bille
+     trouvait toujours appui sur la plateforme d'en face. On ne pouvait plus
+     tomber. Deux rangees font 2,14 d'ecart franc, et le saut renforce des
+     niveaux a plateformes les couvre avec de la marge. */
+  if (index >= p.fin) platVide = 2;
+  return poses;
 }
 
 function makeRow(index) {
@@ -1029,8 +1032,23 @@ function makeRow(index) {
 
   if ((NIVEAUX[niveau] || {}).plateformes &&
       !(finRangee && index > finRangee - QUEUE_LIBRE)) {
-    poserPlateforme(index, slots);
-    return { slots:slots, need:"", pos:0, word:"" };
+    var poses = poserPlateforme(index, slots);
+    /* Les plateformes portaient des touches muettes : plus de mot a completer,
+       donc plus de multiplicateur ni de croissance de la bille. Le niveau
+       perdait tout le systeme de score. La lettre du mot se pose au CENTRE de
+       l'ilot — sur une plateforme etroite, l'exiger au bord rendrait la
+       collecte incompatible avec la trajectoire de saut. */
+    if (planPos >= planWord.length) nextWord();
+    var needP = planWord.charAt(planPos);
+    var wordP = planWord, posP = planPos;
+    if (poses.length && index % 2 === 0) {
+      var cc = poses[(poses.length / 2) | 0];
+      slots[cc].letter = needP;
+      slots[cc].bonus = true;
+      slots[cc].ci = planColorIdx;
+      planPos++;
+    }
+    return { slots:slots, need:needP, pos:posP, word:wordP, ci:planColorIdx };
   }
 
   if (finRangee && index > finRangee - QUEUE_LIBRE) {   // approche du portail
@@ -1276,7 +1294,7 @@ function reset() {
   boost = 0; jy = 0; jvy = 0; jumping = false; slopeSpd = 0; camExtra = 0;
   pops = []; parts = []; mobs = []; flyers = []; bombs = []; shake = 0; flash = 0;
   motif = null; reposBombes = 8; gagne = false;
-  platEtat = null; platVide = 0;
+  platEtat = null; platVide = 0; dyBille = 0;
   scoreEl.textContent = "0";
   speed = 0.054; dist = 0; steerX = null;
   dead = false;
@@ -2049,6 +2067,8 @@ function drawPortail() {
   ctx.restore();
 }
 
+var dyBille = 0;
+
 function drawBall() {
   // La bille suit l'ENFONCEMENT REEL de la touche qu'elle ecrase : c'est ce
   // lien qui la fait paraitre posee dessus plutot que flottante au-dessus.
@@ -2064,8 +2084,11 @@ function drawBall() {
     if (meilleur > KEY_W * 0.75) kSous = null;
   }
   var enfonce = kSous ? kSous.press : 0;
-  var dessus = elevAtZ(ball.z) + (kSous ? (kSous.dy || 0) : 0)
-             + CAP_H * (1 - enfonce * TRAVEL);
+  /* Au-dessus du vide il n'y a aucune touche sous la bille : sans memoire,
+     elle perdait d'un coup le decalage de sa plateforme et plongeait en plein
+     saut. On conserve donc la derniere hauteur connue. */
+  if (kSous) dyBille = kSous.dy || 0;
+  var dessus = elevAtZ(ball.z) + dyBille + CAP_H * (1 - enfonce * TRAVEL);
   var y = ball.y + jy + dessus + ball.r * 0.94;   // legerement enchassee
   var c = proj(ball.x, y, ball.z);
   var R = ball.r * c[2];
@@ -2167,7 +2190,7 @@ function frame(now) {
 
     // saut
     if (jumping) {
-      jvy -= 0.0045 * dt;
+      jvy -= ((NIVEAUX[niveau] || {}).plateformes ? 0.0040 : 0.0045) * dt;
       jy += jvy * dt;
       if (jy <= 0) { jy = 0; jvy = 0; jumping = false; ball.squash = 0.26; }
     }
@@ -2418,7 +2441,10 @@ function majBoutonSaut() {
 
 function doJump() {
   if (!playing || jumping || jy > 0.01) return;
-  jumping = true; jvy = 0.125;
+  jumping = true;
+  // saut plus ample sur les niveaux a plateformes : il doit franchir un vide
+  // de deux rangees, la ou le saut ordinaire sert juste a passer une bombe
+  jvy = (NIVEAUX[niveau] || {}).plateformes ? 0.155 : 0.125;
   playChord([12, 19], "sine", 0.16, 0.09);
   if (SAVE.vib && navigator.vibrate) navigator.vibrate(9);
 }
