@@ -981,12 +981,55 @@ function newKey(row, col, letter, bonus) {
            h:p.h, s:p.s, l:p.l, press:0, pv:0, hit:false };
 }
 
+/* PLATEFORMES INCLINEES.
+   Des ilots etroits suspendus au-dessus du vide, penches alternativement d'un
+   cote puis de l'autre, separes par des trous a franchir en sautant.
+   L'inclinaison ne coute rien au moteur : chaque touche recoit un dy calcule
+   depuis sa colonne, et la projection perspective fait le reste. La bille
+   epouse la surface parce que sa hauteur est lue sur la touche qu'elle
+   touche, pas sur le terrain. */
+var platEtat = null, platVide = 0;
+
+function poserPlateforme(index, slots) {
+  if (platVide > 0) { platVide--; return; }          // le vide entre deux ilots
+
+  if (!platEtat || index > platEtat.fin) {
+    var larg = 3 + ((Math.random() * 2) | 0);
+    var lo = 1 + ((Math.random() * Math.max(1, COLS - larg - 1)) | 0);
+    platEtat = {
+      fin: index + 5 + ((Math.random() * 3) | 0),   // assez long pour se replacer
+      lo: lo, hi: Math.min(COLS - 1, lo + larg - 1),
+      sens: platEtat ? -platEtat.sens : 1,           // penche a l'oppose de la precedente
+      pente: 0.15 + Math.random() * 0.10
+    };
+  }
+  var p = platEtat, mid = (p.lo + p.hi) / 2;
+  for (var c = p.lo; c <= p.hi; c++) {
+    var k = newKey(index, c, ALPHA.charAt((Math.random() * 26) | 0));
+    k.dy = 0.95 + p.sens * (c - mid) * p.pente;
+    slots[c] = k;
+  }
+  /* UNE rangee de vide, pas deux. Mesure : un saut porte 3,65 unites a la
+     vitesse du niveau. Un vide d'une rangee en demande 2,14 — 70 % de marge.
+     Deux rangees en demandent 3,21, soit 14 % : injouable en pratique, il
+     fallait declencher le saut a l'image pres. Trois rangees sont hors de
+     portee. Au sol le vide reste mortel : 33 images sans support contre
+     6 images de sursis. */
+  if (index >= p.fin) platVide = 1;
+}
+
 function makeRow(index) {
   var slots = new Array(COLS), c;
   for (c = 0; c < COLS; c++) slots[c] = null;
 
   if (index <= 16) {                                  // depart : clavier plein, aucun trou
     for (c = 0; c < COLS; c++) slots[c] = newKey(index, c, ALPHA.charAt((Math.random()*26)|0));
+    return { slots:slots, need:"", pos:0, word:"" };
+  }
+
+  if ((NIVEAUX[niveau] || {}).plateformes &&
+      !(finRangee && index > finRangee - QUEUE_LIBRE)) {
+    poserPlateforme(index, slots);
     return { slots:slots, need:"", pos:0, word:"" };
   }
 
@@ -1091,6 +1134,7 @@ function choisirMotif(idx, lo, hi) {
 
 function bombesDeRangee(idx, r) {
   if (idx <= 16) return;
+  if ((NIVEAUX[niveau] || {}).plateformes) return;   // le vide est deja la menace
   if (finRangee && idx > finRangee - QUEUE_LIBRE) return;   // couloir d'arrivee
   var pl = plageLibre(r), lo = pl[0], hi = pl[1];
   // sous trois colonnes, poser quoi que ce soit revient a fermer le passage
@@ -1165,8 +1209,8 @@ var demo = false;
 var NIVEAUX = [
   { rangees: 110, diff: 0.00, nom: "Premiers pas",
     ciel: ["#fbf7f0", "#e9dfd0", "#dfd0bb", "#c8ab8a", "#8a6742"], solH: 26, solS: 30 },
-  { rangees: 140, diff: 0.16, nom: "Ca se resserre",
-    ciel: ["#fff2d8", "#f6dcae", "#eec78c", "#d69a5c", "#8c5526"], solH: 22, solS: 42 },
+  { rangees: 140, diff: 0.16, nom: "Au-dessus du vide", plateformes: true,
+    ciel: ["#1b1030", "#2a1745", "#3a1d55", "#2d1440", "#140a20"], solH: 282, solS: 44 },
   { rangees: 170, diff: 0.34, nom: "Champ de mines",
     ciel: ["#e8f2ff", "#cfe0f2", "#b6cbe2", "#8aa2bd", "#4a5a72"], solH: 214, solS: 22 },
   { rangees: 200, diff: 0.52, nom: "Passages etroits",
@@ -1232,6 +1276,7 @@ function reset() {
   boost = 0; jy = 0; jvy = 0; jumping = false; slopeSpd = 0; camExtra = 0;
   pops = []; parts = []; mobs = []; flyers = []; bombs = []; shake = 0; flash = 0;
   motif = null; reposBombes = 8; gagne = false;
+  platEtat = null; platVide = 0;
   scoreEl.textContent = "0";
   speed = 0.054; dist = 0; steerX = null;
   dead = false;
@@ -1699,7 +1744,9 @@ function drawShadow(k) {
 
 function capGeom(k) {
   var cx = colX(k.col), cz = rowZ(k.row);
-  var e = rowElev(k.row);
+  // dy : decalage vertical propre a la touche. Nul partout sauf sur les
+  // plateformes, ou il varie d'une colonne a l'autre pour donner l'inclinaison.
+  var e = rowElev(k.row) + (k.dy || 0);
   var top = e + CAP_H * (1 - k.press * TRAVEL);
   var bot = e - 0.32;                                  // keycap EPAIS : le flanc doit se voir
   var x0 = cx - KEY_W / 2, x1 = cx + KEY_W / 2, z0 = cz - KEY_D / 2, z1 = cz + KEY_D / 2;
@@ -2017,7 +2064,8 @@ function drawBall() {
     if (meilleur > KEY_W * 0.75) kSous = null;
   }
   var enfonce = kSous ? kSous.press : 0;
-  var dessus = elevAtZ(ball.z) + CAP_H * (1 - enfonce * TRAVEL);
+  var dessus = elevAtZ(ball.z) + (kSous ? (kSous.dy || 0) : 0)
+             + CAP_H * (1 - enfonce * TRAVEL);
   var y = ball.y + jy + dessus + ball.r * 0.94;   // legerement enchassee
   var c = proj(ball.x, y, ball.z);
   var R = ball.r * c[2];
