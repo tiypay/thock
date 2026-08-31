@@ -741,7 +741,7 @@ var KEYSETS = [
 
 var SAVE = { purse:0, balls:["blanc"], keys:["caramel"], ball:"blanc", key:"caramel",
              snd:true, vib:true, level:1, xp:0, gems:3,
-             jourCadeau:"", jourPubs:"", nbPubs:0 };
+             jourCadeau:"", jourPubs:"", nbPubs:0, niveauMax:0, niveauSel:0 };
 
 /* Diamants : monnaie rare, gagnee aux paliers de niveau ou achetee avec des
    pieces. Elle ne sert QU'A reprendre une partie, ce qui lui donne une valeur
@@ -959,6 +959,11 @@ function makeRow(index) {
     return { slots:slots, need:"", pos:0, word:"" };
   }
 
+  if (finRangee && index > finRangee - QUEUE_LIBRE) {   // approche du portail
+    for (c = 0; c < COLS; c++) slots[c] = newKey(index, c, ALPHA.charAt((Math.random()*26)|0));
+    return { slots:slots, need:"", pos:0, word:"" };
+  }
+
   pathCol += [-1, 0, 0, 1][(Math.random() * 4) | 0];
   pathCol = Math.max(0, Math.min(COLS - 1, pathCol));
 
@@ -966,7 +971,9 @@ function makeRow(index) {
   // ilots sans issue : le joueur atterrit dessus et n'a plus aucun coup jouable.
   // La plage part de la LARGEUR TOTALE (clavier plein, aucun trou) et se
   // resserre avec la progression : la difficulte creuse le vide petit a petit.
-  var diff = Math.min(1, Math.max(0, (index - 16) / 320));
+  // la distance ne fait plus qu'accentuer legerement : le gros de la
+  // difficulte vient du niveau, sinon tous les niveaux commencent pareil
+  var diff = Math.min(1, DIFF_NIV + Math.max(0, (index - 16) / 900));
   var width = Math.max(3, Math.round(COLS - diff * (COLS - 3)));
   var lo = pathCol - (width >> 1), hi = lo + width - 1;
 
@@ -1015,14 +1022,20 @@ function plageLibre(r) {
   return [lo, hi];
 }
 
-function poserBombe(idx, col) {
+/* Une bombe retire la touche sous elle. Deux effets : la menace devient
+   lisible de loin — un trou se voit mieux qu'une sphere sombre — et esquiver
+   cesse d'etre gratuit puisque la colonne piegee ne porte plus rien.
+   Retirer une touche INTERIEURE ne coupe pas le chemin : le joueur suit une
+   colonne, il lui suffit qu'une autre reste praticable sur la rangee. */
+function poserBombe(idx, col, r) {
   bombs.push({ x: colX(col), z: rowZ(idx), r: 0.36,
                ph: Math.random() * 6.28, alive: true, boom: 0 });
+  if (r && r.slots[col]) r.slots[col] = null;
 }
 
 function choisirMotif(idx, lo, hi) {
   var w = hi - lo + 1;
-  var d = Math.min(1, Math.max(0, (idx - 20) / 240));
+  var d = Math.min(1, DIFF_NIV + Math.max(0, (idx - 20) / 700));
   var opts = ["solo", "solo"];                    // le solo reste le fond de sauce
   if (w >= 4) opts.push("escalier");
   if (w >= 5) opts.push("mur");
@@ -1047,6 +1060,7 @@ function choisirMotif(idx, lo, hi) {
 
 function bombesDeRangee(idx, r) {
   if (idx <= 16) return;
+  if (finRangee && idx > finRangee - QUEUE_LIBRE) return;   // couloir d'arrivee
   var pl = plageLibre(r), lo = pl[0], hi = pl[1];
   // sous trois colonnes, poser quoi que ce soit revient a fermer le passage
   if (lo < 0 || hi - lo < 2) return;
@@ -1056,22 +1070,22 @@ function bombesDeRangee(idx, r) {
   var m = motif, k = m.pas, c;
 
   if (m.t === "solo") {
-    poserBombe(idx, Math.max(lo, Math.min(hi, m.col)));
+    poserBombe(idx, Math.max(lo, Math.min(hi, m.col)), r);
 
   } else if (m.t === "mur") {
     var trou = Math.max(lo, Math.min(hi, m.trou));
-    for (c = lo; c <= hi; c++) if (c !== trou) poserBombe(idx, c);
+    for (c = lo; c <= hi; c++) if (c !== trou) poserBombe(idx, c, r);
 
   } else if (m.t === "escalier") {
-    poserBombe(idx, Math.max(lo, Math.min(hi, m.col + m.dir * k)));
+    poserBombe(idx, Math.max(lo, Math.min(hi, m.col + m.dir * k)), r);
 
   } else if (m.t === "couloir") {
     var v = Math.max(lo + 1, Math.min(hi - 1, m.voie));
-    for (c = lo; c <= hi; c++) if (Math.abs(c - v) >= 2) poserBombe(idx, c);
+    for (c = lo; c <= hi; c++) if (Math.abs(c - v) >= 2) poserBombe(idx, c, r);
 
   } else {                                        // pince : deux bombes qui convergent
     var g = m.g + k, dr = m.d - k;
-    if (dr - g >= 2) { poserBombe(idx, Math.max(lo, g)); poserBombe(idx, Math.min(hi, dr)); }
+    if (dr - g >= 2) { poserBombe(idx, Math.max(lo, g), r); poserBombe(idx, Math.min(hi, dr), r); }
   }
 
   m.pas++;
@@ -1106,6 +1120,29 @@ var lives = 3, invuln = 0;   // invuln evite de perdre 3 vies sur un seul amas
 
 var boost = 0, jy = 0, jvy = 0, jumping = false, slopeSpd = 0, camExtra = 0;
 var demo = false;
+
+/* NIVEAUX. Le jeu etait une course sans fin ou la difficulte ne dependait que
+   de la distance parcourue. Desormais chaque niveau a une longueur fixe, sa
+   propre difficulte de depart, et se termine sur un portail. La difficulte ne
+   vient donc plus du temps passe mais du niveau choisi — c'est ce qui permet
+   de rejouer un niveau facile sans avoir a mourir pour recommencer. */
+var NIVEAUX = [
+  { rangees: 110, diff: 0.00, nom: "Premiers pas" },
+  { rangees: 140, diff: 0.16, nom: "Ca se resserre" },
+  { rangees: 170, diff: 0.34, nom: "Champ de mines" },
+  { rangees: 200, diff: 0.52, nom: "Passages etroits" },
+  { rangees: 230, diff: 0.70, nom: "Sur le fil" },
+  { rangees: 270, diff: 0.88, nom: "Derniere ligne" }
+];
+var QUEUE_LIBRE = 6;              // rangees pleines avant le portail
+var niveau = 0, finRangee = 0, DIFF_NIV = 0, gagne = false;
+
+function configNiveau(n) {
+  niveau = Math.max(0, Math.min(NIVEAUX.length - 1, n));
+  DIFF_NIV = NIVEAUX[niveau].diff;
+  finRangee = 16 + NIVEAUX[niveau].rangees;
+  gagne = false;
+}
 
 var R_MIN = 0.30, R_MAX = 0.86;
 
@@ -1151,7 +1188,7 @@ function reset() {
   lives = 3; invuln = 0; revives = 0;
   boost = 0; jy = 0; jvy = 0; jumping = false; slopeSpd = 0; camExtra = 0;
   pops = []; parts = []; mobs = []; flyers = []; bombs = []; shake = 0; flash = 0;
-  motif = null; reposBombes = 8;
+  motif = null; reposBombes = 8; gagne = false;
   scoreEl.textContent = "0";
   speed = 0.054; dist = 0; steerX = null;
   dead = false;
@@ -1519,6 +1556,32 @@ function afficherNote(n) {
   if (n > 0) setTimeout(function () { playChord([0, 4, 7], "triangle", 0.35, 0.12); }, 260);
 }
 
+function gagnerNiveau() {
+  if (gagne || dead) return;
+  gagne = true; playing = false;
+  majBoutonSaut();
+
+  if (niveau + 1 > SAVE.niveauMax) SAVE.niveauMax = Math.min(NIVEAUX.length - 1, niveau + 1);
+  SAVE.niveauSel = Math.min(NIVEAUX.length - 1, niveau + 1);
+  var gagneP = 200 + niveau * 120;
+  SAVE.purse += gagneP;
+  gagnerXp(300 + niveau * 150);
+  persist();
+
+  playChord([0, 4, 7, 12, 16], "triangle", 0.7, 0.14);
+  if (SAVE.vib && navigator.vibrate) navigator.vibrate([25, 50, 25, 50, 60]);
+
+  afficherNote(3);
+  document.querySelector("#overPanel .lbl").textContent = "NIVEAU " + (niveau + 1) + " REUSSI";
+  $("finalScore").textContent = score;
+  $("finalInfo").textContent = NIVEAUX[niveau].nom + "  ·  combo " + bestCombo;
+  $("earned").textContent = "+" + gagneP;
+  $("bRepartir").textContent = niveau + 1 < NIVEAUX.length ? "NIVEAU SUIVANT" : "REJOUER";
+  overEl.style.display = "flex";
+  overEl.classList.remove("hidden");
+  var h = document.getElementById("hud"); if (h) h.style.opacity = "0";
+}
+
 function die() {
   if (dead) return;
   dead = true; playing = false;
@@ -1869,6 +1932,32 @@ function peindreBille(ctx2, cx, cy, R, bille, rotX, rotZ, combo2) {
   ctx2.beginPath(); ctx2.arc(cx, cy, R * 0.99, 0, Math.PI * 2); ctx2.stroke();
 }
 
+/* PORTAIL DE FIN. Un anneau lumineux pose en travers de la piste, a hauteur
+   de saut : il annonce la fin du niveau de loin et donne une cible franche. */
+function drawPortail() {
+  var t = performance.now() / 1000;
+  var zc = rowZ(finRangee), yc = elevAtZ(zc) + CAP_H + 1.05;
+  var c = proj(0, yc, zc);
+  if (c[2] <= 0) return;
+  var R = 2.55 * c[2], ep = Math.max(3, 0.30 * c[2]);
+  ctx.save();
+  ctx.globalAlpha = 0.95;
+  for (var k = 3; k >= 0; k--) {                 // halo : plusieurs passes
+    ctx.beginPath();
+    ctx.ellipse(c[0], c[1], R * (1 + k * 0.05), R * 0.62 * (1 + k * 0.05), 0, 0, Math.PI * 2);
+    ctx.strokeStyle = k ? "rgba(120,225,255," + (0.10 / k) + ")" : "#bff2ff";
+    ctx.lineWidth = ep * (k ? 2.2 : 1);
+    ctx.stroke();
+  }
+  var g = ctx.createLinearGradient(c[0], c[1] - R * 0.62, c[0], c[1] + R * 0.62);
+  g.addColorStop(0, "rgba(90,200,255,.34)");
+  g.addColorStop(0.5, "rgba(180,245,255," + (0.20 + 0.08 * Math.sin(t * 3)) + ")");
+  g.addColorStop(1, "rgba(60,150,220,.30)");
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.ellipse(c[0], c[1], R * 0.94, R * 0.58, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
 function drawBall() {
   // La bille suit l'ENFONCEMENT REEL de la touche qu'elle ecrase : c'est ce
   // lien qui la fait paraitre posee dessus plutot que flottante au-dessus.
@@ -1979,8 +2068,10 @@ function frame(now) {
     // on peine. C'est ce qui donne un rythme au parcours.
     var slope = slopeAtZ(ball.z);
     slopeSpd += (-slope * 0.090 - slopeSpd) * (1 - Math.pow(0.86, dt));
-    slopeSpd = Math.max(-0.022, Math.min(0.050, slopeSpd));
-    speed = Math.max(0.028, Math.min(0.097, 0.054 + dist * 0.00015) + boost + slopeSpd);
+    // La montee freinait jusqu'a 0,032 sans bonus : on rampait des qu'on
+    // ratait une lettre. Penalite de pente reduite, socle et plafond releves.
+    slopeSpd = Math.max(-0.014, Math.min(0.050, slopeSpd));
+    speed = Math.max(0.044, Math.min(0.112, 0.064 + dist * 0.00015) + boost + slopeSpd);
 
     // saut
     if (jumping) {
@@ -2020,6 +2111,10 @@ function frame(now) {
       ball.grace += dt;
       if (ball.grace > 6) { ball.vy = -0.012; die(); }
     }
+
+    // le portail se franchit en roulant ou en sautant : exiger le saut
+    // punirait un joueur qui a bien joue tout le niveau
+    if (!demo && finRangee && ball.z >= rowZ(finRangee)) gagnerNiveau();
 
     ensureRows(Math.floor(ball.z / PITCH_Z) + VIEW_ROWS + 6);
     while (Math.floor(ball.z / PITCH_Z) - lowestRow > TRAIL_ROWS + 2) { rows.shift(); lowestRow++; }
@@ -2117,6 +2212,7 @@ function frame(now) {
     for (var bi = 0; bi < bombs.length; bi++) {
       if (Math.round(bombs[bi].z / PITCH_Z) === r) drawBomb(bombs[bi]);
     }
+    if (finRangee && r === finRangee) drawPortail();
   }
 
   // "+1" en espace monde
@@ -2301,9 +2397,12 @@ function begin() {
   initAudio();
   if (AC.state === "suspended") AC.resume();
   if (master) master.gain.value = SAVE.snd ? 0.85 : 0;
+  configNiveau(SAVE.niveauSel || 0);     // avant reset : la generation en depend
   reset();
   playing = true;
   majBoutonSaut();
+  document.querySelector("#overPanel .lbl").textContent = "TOMBE";
+  $("bRepartir").textContent = "REPARTIR";
   startEl.classList.add("hidden");
   overEl.classList.add("hidden");
   setTimeout(function () { startEl.style.display = "none"; overEl.style.display = "none"; }, 320);
@@ -2752,6 +2851,12 @@ function pubRecompensee() {
 }
 
 function ouvrirChoix() {
+  if (gagne) {                          // apres une victoire il enchaine
+    if (niveau + 1 < NIVEAUX.length) SAVE.niveauSel = niveau + 1;
+    persist();
+    ecranChargement(begin);
+    return;
+  }
   var px = prixGems();
   $("prixGems").textContent = px;
   $("cGems").style.opacity = SAVE.gems >= px ? "1" : ".45";
@@ -2786,6 +2891,7 @@ reset();
 function lancerDemo() {
   initAudio();
   reset();
+  configNiveau(0); finRangee = 0;        // la demo du menu n'a pas de fin
   demo = true; playing = true;
   majBoutonSaut();
   if (master) master.gain.value = 0;      // muet tant qu'on n'a pas joue
