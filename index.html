@@ -1010,14 +1010,14 @@ function poserPlateforme(index, slots) {
     slots[c] = k;
     poses.push(c);
   }
-  /* DEUX rangees de vide. J'avais essaye une seule : le saut passait large,
-     mais le vide n'etait plus mortel du tout. hasSupport cherche une touche
-     dans un rayon de 0,62 en profondeur ET regarde les rangees voisines ; un
-     trou de 1,07 est plus etroit que les deux rayons cumules, donc la bille
-     trouvait toujours appui sur la plateforme d'en face. On ne pouvait plus
-     tomber. Deux rangees font 2,14 d'ecart franc, et le saut renforce des
-     niveaux a plateformes les couvre avec de la marge. */
-  if (index >= p.fin) platVide = 2;
+  /* UNE rangee de vide. J'avais brievement mis deux rangees en croyant qu'une
+     seule n'etait pas mortelle — le calcul etait faux : ce qui compte n'est pas
+     la largeur du trou (1,07) mais la DISTANCE ENTRE LES DEUX PLATEFORMES
+     (2,14), a comparer aux deux rayons de support cumules (1,24). Il reste
+     0,90 unite sans appui, soit 14 images contre 6 de sursis : mortel.
+     Deux rangees obligeaient a un saut deux fois plus haut, ce qui sortait la
+     bille du cadre et cassait la lecture. */
+  if (index >= p.fin) platVide = 1;
   return poses;
 }
 
@@ -2190,7 +2190,7 @@ function frame(now) {
 
     // saut
     if (jumping) {
-      jvy -= ((NIVEAUX[niveau] || {}).plateformes ? 0.0040 : 0.0045) * dt;
+      jvy -= 0.0045 * dt;
       jy += jvy * dt;
       if (jy <= 0) { jy = 0; jvy = 0; jumping = false; ball.squash = 0.26; }
     }
@@ -2441,10 +2441,7 @@ function majBoutonSaut() {
 
 function doJump() {
   if (!playing || jumping || jy > 0.01) return;
-  jumping = true;
-  // saut plus ample sur les niveaux a plateformes : il doit franchir un vide
-  // de deux rangees, la ou le saut ordinaire sert juste a passer une bombe
-  jvy = (NIVEAUX[niveau] || {}).plateformes ? 0.155 : 0.125;
+  jumping = true; jvy = 0.125;          // meme saut partout : lisible et sobre
   playChord([12, 19], "sine", 0.16, 0.09);
   if (SAVE.vib && navigator.vibrate) navigator.vibrate(9);
 }
