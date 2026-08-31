@@ -375,6 +375,25 @@
                              inset 0 3px 0 rgba(255,255,255,.55); }
   @media (prefers-reduced-motion: reduce) { #bSaut { transition:none; } }
   .act .piece { font-size:13px; vertical-align:-1px; margin-right:2px; }
+  /* Selection de niveau. La vignette reprend le degrade du ciel du niveau :
+     on voit son ambiance avant d'y entrer, ce qui donne envie d'avancer. */
+  #gridNiv { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; margin-top:6px; }
+  .niv { position:relative; border-radius:18px; overflow:hidden; cursor:pointer;
+         border:2px solid rgba(255,255,255,.14); background:rgba(0,0,0,.26); }
+  .niv .vue { height:78px; position:relative; }
+  .niv .num { position:absolute; top:8px; left:0; right:0; text-align:center;
+              font-size:34px; font-weight:900; color:#fff;
+              text-shadow:0 3px 0 rgba(0,0,0,.42), 0 0 12px rgba(0,0,0,.35); }
+  .niv .bas { padding:8px 10px 10px; }
+  .niv .nm { color:#fff; font-size:12px; font-weight:800; text-align:center;
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .niv .sous { color:rgba(255,214,160,.62); font-size:10px; font-weight:700;
+               text-align:center; margin-top:2px; letter-spacing:.5px; }
+  .niv.ouvert { border-color:#ffd84d; box-shadow:0 0 0 1px rgba(255,216,77,.3); }
+  .niv.verrou .vue { filter:grayscale(.85) brightness(.55); }
+  .niv .cadenas { position:absolute; inset:0; display:flex; align-items:center;
+                  justify-content:center; }
+  .niv .cadenas img { width:34px; height:34px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
 </style>
 </head>
 <body>
@@ -443,6 +462,7 @@
     <div class="purse"><div class="c">🪙</div><b id="purseMenu">29357</b></div>
   </div>
   <button class="rnd btnBig" id="bPlay">JOUER</button>
+  <button class="rnd btnBig alt" id="bNiv">NIVEAUX</button>
   <button class="rnd btnBig alt" id="bShop">BOUTIQUE</button>
   <button class="rnd btnBig alt" id="bSet">RÉGLAGES</button>
 </div>
@@ -467,6 +487,17 @@
     <h3 class="rayon">DIAMANTS</h3>
     <div class="grid trio" id="gridGems"></div>
   </div>
+</div>
+
+<div id="niveaux" class="sheet">
+  <div class="hdr">
+    <button class="rnd btnIco" data-close="niveaux">←</button>
+    <h2>Niveaux</h2>
+    <div class="bourses">
+      <div class="purse gem"><span id="icoNivGem"></span><b id="gemsNiv">0</b></div>
+    </div>
+  </div>
+  <div class="body"><div id="gridNiv"></div></div>
 </div>
 
 <div id="pays" class="sheet">
@@ -1126,14 +1157,26 @@ var demo = false;
    propre difficulte de depart, et se termine sur un portail. La difficulte ne
    vient donc plus du temps passe mais du niveau choisi — c'est ce qui permet
    de rejouer un niveau facile sans avoir a mourir pour recommencer. */
+/* Chaque niveau porte son ambiance : degrade du ciel (5 arrets, du haut vers
+   le bas) et teinte du sol. Le stop a 0.16 doit rester tres proche de la
+   couleur lointaine du sol, sinon une couture apparait a l'horizon.
+   La teinte des touches, elle, reste celle que le joueur a achetee — un theme
+   qui l'ecraserait rendrait la boutique inutile. */
 var NIVEAUX = [
-  { rangees: 110, diff: 0.00, nom: "Premiers pas" },
-  { rangees: 140, diff: 0.16, nom: "Ca se resserre" },
-  { rangees: 170, diff: 0.34, nom: "Champ de mines" },
-  { rangees: 200, diff: 0.52, nom: "Passages etroits" },
-  { rangees: 230, diff: 0.70, nom: "Sur le fil" },
-  { rangees: 270, diff: 0.88, nom: "Derniere ligne" }
+  { rangees: 110, diff: 0.00, nom: "Premiers pas",
+    ciel: ["#fbf7f0", "#e9dfd0", "#dfd0bb", "#c8ab8a", "#8a6742"], solH: 26, solS: 30 },
+  { rangees: 140, diff: 0.16, nom: "Ca se resserre",
+    ciel: ["#fff2d8", "#f6dcae", "#eec78c", "#d69a5c", "#8c5526"], solH: 22, solS: 42 },
+  { rangees: 170, diff: 0.34, nom: "Champ de mines",
+    ciel: ["#e8f2ff", "#cfe0f2", "#b6cbe2", "#8aa2bd", "#4a5a72"], solH: 214, solS: 22 },
+  { rangees: 200, diff: 0.52, nom: "Passages etroits",
+    ciel: ["#f3e6ff", "#dfc9f2", "#c6a9e0", "#9d7ec0", "#4e3670"], solH: 276, solS: 26 },
+  { rangees: 230, diff: 0.70, nom: "Sur le fil",
+    ciel: ["#e6fff2", "#c6f0da", "#a6dcc0", "#79b295", "#2f5f4a"], solH: 156, solS: 26 },
+  { rangees: 270, diff: 0.88, nom: "Derniere ligne",
+    ciel: ["#2a2036", "#3a2a44", "#4a3348", "#5a3a3e", "#2a1a1c"], solH: 8, solS: 34 }
 ];
+function theme() { return NIVEAUX[niveau] || NIVEAUX[0]; }
 var QUEUE_LIBRE = 6;              // rangees pleines avant le portail
 var niveau = 0, finRangee = 0, DIFF_NIV = 0, gagne = false;
 
@@ -1640,8 +1683,9 @@ function drawChocolate() {
     var e0 = elevAtZ(z0) + FLOOR_Y, e1 = elevAtZ(z1) + FLOOR_Y;
     var far = Math.max(0, Math.min(1, (r - cur) / (VIEW_ROWS + 8)));
     var L = 26 + far * 48;
+    var TH = theme();
     quad(proj(-hw, e0, z0), proj(hw, e0, z0), proj(hw, e1, z1), proj(-hw, e1, z1),
-         "hsl(" + (26 + far * 8) + "," + (30 - far * 16) + "%," + L + "%)");
+         "hsl(" + (TH.solH + far * 8) + "," + Math.max(4, TH.solS - far * 16) + "%," + L + "%)");
   }
 }
 
@@ -2179,11 +2223,12 @@ function frame(now) {
   var bg = ctx.createLinearGradient(0, 0, 0, H);
   // Le stop a 0.16 vaut exactement la couleur lointaine du sol : c'est ce qui
   // fait disparaitre la couture ciel/chocolat a l'horizon.
-  bg.addColorStop(0, "#fbf7f0");
-  bg.addColorStop(0.16, "#e9dfd0");
-  bg.addColorStop(0.34, "#dfd0bb");
-  bg.addColorStop(0.60, "#c8ab8a");
-  bg.addColorStop(1, "#8a6742");
+  var CI = theme().ciel;
+  bg.addColorStop(0, CI[0]);
+  bg.addColorStop(0.16, CI[1]);
+  bg.addColorStop(0.34, CI[2]);
+  bg.addColorStop(0.60, CI[3]);
+  bg.addColorStop(1, CI[4]);
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
   ctx.save();
@@ -2641,6 +2686,24 @@ function peindreApercus() {
   }
 }
 
+function majNiveaux() {
+  var g = $("gridNiv"); if (!g) return;
+  var max = SAVE.niveauMax || 0;
+  g.innerHTML = NIVEAUX.map(function (N, i) {
+    var ouvert = i <= max;
+    var cl = "niv" + (ouvert ? "" : " verrou") + (i === (SAVE.niveauSel || 0) ? " ouvert" : "");
+    return '<div class="' + cl + '" data-n="' + i + '">'
+      + '<div class="vue" style="background:linear-gradient(180deg,' + N.ciel[0] + ' 0%,'
+        + N.ciel[2] + ' 55%,' + N.ciel[4] + ' 100%)">'
+      + '<div class="num">' + (i + 1) + '</div>'
+      + (ouvert ? "" : '<div class="cadenas"><img src="ui/ico_cadenas.png" alt=""></div>')
+      + '</div>'
+      + '<div class="bas"><div class="nm">' + N.nom + '</div>'
+      + '<div class="sous">' + (ouvert ? N.rangees + " RANGEES" : "VERROUILLE") + '</div></div></div>';
+  }).join("");
+  var ng = $("gemsNiv"); if (ng) ng.textContent = formatNombre(SAVE.gems);
+}
+
 function majBoutique() {
   $("gridGems").innerHTML = PACKS.map(function (p) {
     return '<div class="card pack' + (p.best ? " best" : "") + '" data-t="g" data-id="' + p.id + '">'
@@ -2736,12 +2799,23 @@ $("gridPays").addEventListener("click", clicCarte);
 $("gridGlobe").addEventListener("click", clicCarte);
 $("gridClaviers").addEventListener("click", clicCarte);
 $("gridGratuit").addEventListener("click", clicCarte);
+
+$("gridNiv").addEventListener("click", function (e) {
+  var c = e.target.closest ? e.target.closest(".niv") : null;
+  if (!c || c.classList.contains("verrou")) { playHurt(); return; }
+  playBois();
+  SAVE.niveauSel = parseInt(c.getAttribute("data-n"), 10) || 0;
+  persist();
+  fermer("niveaux");
+  ecranChargement(begin);
+});
 $("gridKeys").addEventListener("click", clicCarte);
 
 function ouvrir(id) { $(id).classList.add("on");
-  if (id === "shop" || id === "pays" || id === "claviers") majBoutique(); }
+  if (id === "shop" || id === "pays" || id === "claviers") majBoutique();
+  if (id === "niveaux") majNiveaux(); }
 function fermer(id) { $(id).classList.remove("on"); majBourse(); }
-Array.prototype.forEach.call(["icoGems", "icoPurse", "icoMenuGem", "icoPaysGem", "icoClavGem"], function (nid) {
+Array.prototype.forEach.call(["icoGems", "icoPurse", "icoMenuGem", "icoPaysGem", "icoClavGem", "icoNivGem"], function (nid) {
   var n = $(nid); if (n) n.innerHTML = ICO_DIAMANT;
 });
 Array.prototype.forEach.call(document.querySelectorAll("[data-close]"), function (b) {
@@ -2769,6 +2843,7 @@ tap($("bWipe"), function () {
 });
 
 tap($("bPlay"), function () { ecranChargement(begin); });
+tap($("bNiv"), function () { ouvrir("niveaux"); });
 tap($("bShop"), function () { ouvrir("shop"); });
 tap($("bSet"),  function () { ouvrir("settings"); });
 tap($("bAgain"), function () { ecranChargement(begin); });
