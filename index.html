@@ -374,6 +374,7 @@
                   box-shadow:0 1px 0 #9c4a06, 0 4px 9px rgba(0,0,0,.45),
                              inset 0 3px 0 rgba(255,255,255,.55); }
   @media (prefers-reduced-motion: reduce) { #bSaut { transition:none; } }
+  .act .piece { font-size:13px; vertical-align:-1px; margin-right:2px; }
 </style>
 </head>
 <body>
@@ -2429,9 +2430,21 @@ function reprendre(gratuit) {
   return true;
 }
 
+/* Un appui sur mobile produit touchstart PUIS un click synthetique. Les deux
+   etaient ecoutes, donc chaque bouton s'activait DEUX FOIS : panneau ouvert
+   puis referme aussitot, achat compte double, clic en bois joue deux fois.
+   preventDefault ne supprime pas le click dans tous les cas — on garde donc
+   une trace du dernier declenchement pour ignorer le doublon. */
 function tap(el, fn) {
   if (!el) return;
-  function decl(e) { e.preventDefault(); initAudio(); playBois(); fn(); }
+  var dernier = -1e9;
+  function decl(e) {
+    e.preventDefault();
+    var t = (e.timeStamp || 0) || Date.now();
+    if (t - dernier < 500) return;              // c'est le doublon, on l'ignore
+    dernier = t;
+    initAudio(); playBois(); fn();
+  }
   el.addEventListener("touchstart", decl, { passive:false });
   el.addEventListener("click", decl);
 }
@@ -2458,6 +2471,10 @@ var ICO_DIAMANT =
 /* Un solde a cinq ou six chiffres poussait le titre du panneau a se tronquer
    ("Bouti..."). L'abreviation en K/M est la convention du jeu mobile : elle
    borne la largeur du compteur quel que soit le montant. */
+/* Les prix affichaient "600 $" alors que la monnaie du jeu est la piece :
+   incoherent avec la bourse, qui montre une piece partout ailleurs. */
+var PIECE = '<span class="piece">🪙</span> ';
+
 function formatNombre(n) {
   if (n < 10000) return String(n);
   if (n < 1000000) return (Math.floor(n / 100) / 10).toFixed(1).replace(".", ",") + "K";
@@ -2487,8 +2504,9 @@ function carte(it, type) {
     : '<div class="sw socle"><canvas class="apercu" width="260" height="124" data-bille="' + it.id + '"></canvas></div>';
   var btn = eq   ? '<button class="act on">ÉQUIPÉ</button>'
           : poss ? '<button class="act use">UTILISER</button>'
-          : (SAVE.purse >= it.prix ? '<button class="act buy">' + it.prix + ' $</button>'
-                                   : '<button class="act no">' + it.prix + ' $</button>');
+          : (SAVE.purse >= it.prix
+               ? '<button class="act buy">' + PIECE + it.prix + '</button>'
+               : '<button class="act no">' + PIECE + it.prix + '</button>');
   return '<div class="card' + (eq ? " eq" : "") + '" data-t="' + type + '" data-id="' + it.id + '">'
        + apercu + '<div class="nm">' + it.nom + '</div>' + btn + '</div>';
 }
