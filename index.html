@@ -105,18 +105,18 @@
 
 
   /* ---------- ecrans meta ---------- */
+  /* Fond caramel CLAIR : les cartes sont creme, il leur faut un support chaud
+     mais assez fonce pour qu'elles ressortent, pas un chocolat qui les noie. */
   .sheet { position:fixed; inset:0; z-index:12; display:none; flex-direction:column;
-           background:
-             radial-gradient(120% 55% at 50% -6%, rgba(255,186,92,.30) 0%,
-                                                  rgba(255,150,60,0) 62%),
-             linear-gradient(180deg,#6d3d17 0%,#4d2711 34%,#361a0c 68%,#241107 100%); }
+           background:linear-gradient(180deg,#e8a55e 0%,#e0954b 30%,#d9873c 100%); }
   .sheet.on { display:flex; }
   /* space-between reparti sur quatre enfants collait le titre aux bourses.
      Le titre pousse desormais les compteurs a droite, et l'entete se serre
      un cran pour tenir deux bourses sur un ecran de 375 px. */
   .sheet .hdr { display:flex; align-items:center; gap:10px;
                 padding:calc(env(safe-area-inset-top,8px) + 14px) 14px 12px;
-                background:linear-gradient(180deg,rgba(60,28,10,.55),rgba(60,28,10,0));
+                background:linear-gradient(180deg,#d98f42,#e0954b);
+                box-shadow:0 3px 10px rgba(120,60,16,.30);
                 position:relative; z-index:1; }
   /* flex-shrink vaut 1 par defaut : avec deux bourses et un gros solde, la
      ligne se serrait et c'est le bouton retour qui payait (52 -> 22 px de
@@ -132,7 +132,7 @@
   .hdr .purse.gem > span:first-child { width:29px; height:26px; flex:0 0 29px;
                                        margin-left:-21px; }
   .sheet h2 { color:#fff; font-size:23px; font-weight:900; letter-spacing:-.5px;
-              text-shadow:0 3px 0 rgba(0,0,0,.35); }
+              text-shadow:0 3px 0 rgba(122,58,12,.55); }
   .sheet .body { flex:1; overflow-y:auto; padding:6px 16px 20px; -webkit-overflow-scrolling:touch; }
 
   /* Boutons issus du kit. Les dimensions respectent le RATIO de l'image
@@ -219,25 +219,31 @@
   /* Le fond etait un noir translucide neutre, sans rapport avec le bois du
      jeu. Panneau chaud, liseré clair en haut, ombre portee : la carte a une
      epaisseur, comme les planches des boutons. */
-  .card { background:linear-gradient(180deg,#8a4d1f 0%,#6b3915 40%,#4d2710 100%);
-          border:2px solid rgba(255,206,142,.26); border-radius:18px;
-          padding:11px; text-align:center;
-          box-shadow:0 4px 0 rgba(43,20,8,.75),
-                     inset 0 2px 0 rgba(255,224,176,.22),
-                     inset 0 -10px 18px rgba(40,17,6,.35); }
-  .card.eq { border-color:#ffd84d;
-             background:linear-gradient(180deg,#a3651f 0%,#844c17 42%,#5e320f 100%);
-             box-shadow:0 4px 0 rgba(63,32,8,.75), 0 0 0 1px rgba(255,216,77,.35),
-                        inset 0 2px 0 rgba(255,236,190,.32); }
+  /* Carte creme, bouton d'achat colle au bas : c'est le bouton qui porte le
+     prix, donc il doit etre la premiere chose que l'oeil trouve. */
+  .card { display:flex; flex-direction:column;
+          background:linear-gradient(180deg,#fdf4e2 0%,#f6e5c9 100%);
+          border:2px solid #fffaf0; border-radius:15px;
+          padding:11px 11px 0; text-align:center; overflow:hidden;
+          box-shadow:0 4px 0 rgba(150,84,26,.34), 0 6px 12px rgba(120,60,16,.18); }
+  .card.eq { border-color:#ffcf4a;
+             box-shadow:0 0 0 3px rgba(255,207,74,.55),
+                        0 4px 0 rgba(150,84,26,.34), 0 6px 12px rgba(120,60,16,.18); }
   .card .sw { height:62px; border-radius:13px; margin-bottom:8px; position:relative; overflow:hidden; }
   /* socle : la bille est posee dessus, pas flottante dans une vignette */
   .card.pack { position:relative; }
-  .card.pack.best { border-color:#ffd84d; background:rgba(255,216,77,.10); }
-  .card.pack .ruban { position:absolute; top:-9px; left:50%; transform:translateX(-50%);
-                      background:linear-gradient(180deg,#ffe06a,#f0ad13); color:#5a3a12;
+  .card.pack.best { border-color:#ffcf4a;
+                    box-shadow:0 0 0 3px rgba(255,207,74,.5),
+                               0 4px 0 rgba(150,84,26,.34), 0 6px 12px rgba(120,60,16,.18); }
+  /* Le ruban se pose juste au-dessus du bouton vert, la ou l'oeil descend
+     deja pour lire le prix. En haut de la carte, il ne servait a rien. */
+  .card.pack .ruban { position:absolute; left:50%; bottom:36px;
+                      transform:translateX(-50%);
+                      background:linear-gradient(180deg,#ff5f8d,#d8265c); color:#fff;
                       font-size:9px; font-weight:900; letter-spacing:.5px;
-                      padding:3px 9px; border-radius:7px; white-space:nowrap;
-                      box-shadow:0 2px 0 rgba(0,0,0,.3); z-index:2; }
+                      padding:4px 11px; border-radius:8px; white-space:nowrap;
+                      text-shadow:0 1px 0 rgba(120,10,45,.6);
+                      box-shadow:0 2px 0 rgba(140,20,60,.55); z-index:2; }
   .card .sw.tresor { background:linear-gradient(180deg,#1b3352,#0b1a2e);
                      display:flex; align-items:flex-end; justify-content:center; height:74px; }
   .card .sw.tresor img { max-width:92%; max-height:100%; object-fit:contain;
@@ -247,7 +253,7 @@
      vignette grandit vers la droite. L'escalier fait lire la progression
      avant meme que l'oeil arrive sur les prix. */
   .grid.trio { grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
-  .grid.trio .card { padding:7px 5px 8px; border-radius:15px; }
+  .grid.trio .card { padding:7px 5px 0; border-radius:15px; }
   /* Cadres identiques : c'est l'illustration qui grandit d'un palier a l'autre
      (74 %, 88 %, 100 % du cadre). Faire grandir la vignette AUSSI multipliait
      les deux effets et rendait le premier palier minuscule.
@@ -259,66 +265,83 @@
                                   rgba(10,26,46,0) 72%); }
   .grid.trio .card .sw.tresor img { max-width:100%; max-height:100%;
                                     filter:drop-shadow(0 4px 6px rgba(0,0,0,.55)); }
-  .grid.trio .card .nm { font-size:13px; margin-bottom:4px; }
-  .grid.trio .card .act { font-size:16px; white-space:nowrap;
-                          border-width:15px 17px; border-image-width:15px 17px; }
+  /* Le nombre de diamants en tete de carte, gros et cerne : c'est ce qu'on
+     compare d'un palier a l'autre. L'illustration ne fait que confirmer. */
+  .grid.trio .qte { color:#3aa8d8; font-size:23px; font-weight:900; line-height:1;
+                    margin:3px 0 4px; letter-spacing:-.5px;
+                    text-shadow:0 2px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff,
+                                0 3px 3px rgba(58,168,216,.32); }
+  .grid.trio .card { padding-bottom:0; }
+  .grid.trio .card .act { font-size:15px; white-space:nowrap; padding:10px 2px;
+                          width:calc(100% + 10px); margin:8px -5px 0; }
   .grid.trio .card.best { box-shadow:0 0 0 1px rgba(255,216,77,.35),
                                      0 6px 22px rgba(255,190,60,.22); }
   .grid.trio .ruban { font-size:8px; padding:3px 7px; letter-spacing:.3px; }
-  .card .sw.socle { background:linear-gradient(180deg,#33190a 0%,#1e0e05 100%);
-                    box-shadow:inset 0 3px 7px rgba(0,0,0,.6),
-                               inset 0 -1px 0 rgba(255,200,140,.14); }
+  .card .sw.socle { background:linear-gradient(180deg,#f3e3c6 0%,#e6cfa6 100%);
+                    box-shadow:inset 0 2px 5px rgba(150,105,50,.30); }
   .card canvas.apercu { width:100%; height:100%; display:block; }
-  .card .nm { color:#fff6e4; font-size:13px; font-weight:800; margin-bottom:4px;
-              text-shadow:0 2px 0 rgba(50,22,6,.55); }
-  .card .act { display:block; width:100%; padding:8px 0; border-radius:10px; font-size:17px;
-               font-weight:900; border:none; font-family:inherit; }
+  .card .nm { color:#6b3a10; font-size:14px; font-weight:900; margin-bottom:8px; }
+  .card .act { display:flex; font-weight:900; border:none; font-family:inherit;
+               font-size:17px; width:calc(100% + 22px); margin:9px -11px 0;
+               margin-top:auto;              /* colle le bandeau au bas de la carte */
+               padding:11px 6px; border-radius:0 0 12px 12px; }
   /* aspect-ratio 3.30 = celui de l'image : a hauteur fixe on l'ecrasait
      (ratio 7.9) et les bouts arrondis s'aplatissaient. */
-  .act { padding:1px 4px; width:100%;
-         display:flex; align-items:center; justify-content:center;
-         background-size:100% 100%; background-repeat:no-repeat; font-size:17px;
-         letter-spacing:.3px; }
-  .act { position:relative; }
-  .act.buy { color:#5b2e07; background:none;
-             border-style:solid; border-color:transparent; border-width:15px 26px;
-             border-image:url('ui/b_banniere.png') 70 110 fill / 15px 26px / 0 stretch;
-             text-shadow:0 1px 0 rgba(255,236,190,.5); }
-  .act.use { color:#ffe2bc; background:none;
-             border-style:solid; border-color:transparent; border-width:15px 30px;
-             border-image:url('ui/b_barre_vide.png') 46 112 fill / 15px 30px / 0 stretch; }
-  .act.on  { color:#1e3d08; background:none;
-             border-style:solid; border-color:transparent; border-width:15px 26px;
-             border-image:url('ui/b_banniere.png') 70 110 fill / 15px 26px / 0 stretch;
-             filter:hue-rotate(58deg) saturate(1.25); }
-  .act.no  { color:rgba(255,226,188,.5); background:none;
-             border-style:solid; border-color:transparent; border-width:15px 30px;
-             border-image:url('ui/b_barre_vide.png') 46 112 fill / 15px 30px / 0 stretch;
-             filter:saturate(.5) brightness(.8);
-             filter:grayscale(.7) brightness(.62); }
+  /* Le bouton deborde la marge de la carte pour venir affleurer ses bords :
+     bandeau plein en bas, comme sur les boutiques de jeux mobiles. */
+  .act { position:relative; display:flex; align-items:center; justify-content:center;
+         gap:2px; font-size:17px; letter-spacing:.3px;
+         width:calc(100% + 22px); margin:9px -11px 0; padding:11px 6px;
+         border:none; border-radius:0 0 12px 12px; }
+  .act.buy { color:#fff; text-shadow:0 2px 0 rgba(38,86,6,.55);
+             background:linear-gradient(180deg,#8fd63a 0%,#66b418 52%,#57a10f 100%);
+             box-shadow:inset 0 2px 0 rgba(255,255,255,.42),
+                        inset 0 -5px 0 rgba(48,101,4,.55); }
+  .act.buy:active { background:linear-gradient(180deg,#7cc22c 0%,#57a10f 100%);
+                    box-shadow:inset 0 3px 6px rgba(30,70,0,.45); }
+  .act.use { color:#fff; text-shadow:0 2px 0 rgba(20,70,110,.5);
+             background:linear-gradient(180deg,#6fc7f5 0%,#3d9fdb 52%,#2e8cc6 100%);
+             box-shadow:inset 0 2px 0 rgba(255,255,255,.42),
+                        inset 0 -5px 0 rgba(24,96,140,.5); }
+  /* Deja equipe : plus rien a acheter, donc plus de vert. Un bandeau sourd
+     qui se lit comme un etat, pas comme une action. */
+  .act.on  { color:#7a5220; text-shadow:0 1px 0 rgba(255,245,225,.6);
+             background:linear-gradient(180deg,#e9d3ac 0%,#dcc094 100%);
+             box-shadow:inset 0 2px 0 rgba(255,255,255,.5),
+                        inset 0 -4px 0 rgba(168,127,72,.38); }
+  .act.no  { color:rgba(122,82,32,.62); text-shadow:0 1px 0 rgba(255,245,225,.5);
+             background:linear-gradient(180deg,#ddcbb0 0%,#cbb494 100%);
+             box-shadow:inset 0 -4px 0 rgba(160,126,80,.34); }
 
   /* Choix de la langue : une ligne par langue, le code en pastille pour que
      l'oeil accroche meme quand on ne lit pas encore la langue affichee. */
   #listeLangues { display:flex; flex-direction:column; gap:9px; margin-top:4px; }
   .rangLang { display:flex; align-items:center; gap:13px; width:100%;
-              padding:13px 15px; border-radius:16px; font-family:inherit;
+              padding:13px 15px; border-radius:15px; font-family:inherit;
               cursor:pointer; text-align:left;
-              background:rgba(58,28,10,.55); border:2px solid rgba(255,214,160,.18); }
+              background:linear-gradient(180deg,#fdf4e2 0%,#f6e5c9 100%);
+              border:2px solid #fffaf0;
+              box-shadow:0 4px 0 rgba(150,84,26,.30), 0 6px 12px rgba(120,60,16,.16); }
   .rangLang .code { flex:0 0 auto; min-width:42px; text-align:center;
                     padding:5px 8px; border-radius:9px; font-size:13px; font-weight:900;
                     color:#5b2e07; letter-spacing:.5px;
                     background:linear-gradient(180deg,#ffd25e,#f0a52a);
                     box-shadow:inset 0 2px 0 rgba(255,255,255,.5); }
-  .rangLang .nom { color:#ffe8c8; font-size:16px; font-weight:800; }
-  .rangLang.actif { border-color:#ffd84d; background:rgba(255,216,77,.14); }
+  .rangLang .nom { color:#6b3a10; font-size:16px; font-weight:900; }
+  .rangLang.actif { border-color:#ffcf4a;
+                    box-shadow:0 0 0 3px rgba(255,207,74,.5),
+                               0 4px 0 rgba(150,84,26,.30); }
   .rangLang:active { transform:translateY(2px); }
 
   .rowset { display:flex; align-items:center; justify-content:space-between;
-            background:rgba(0,0,0,.26); border:2px solid rgba(255,255,255,.13);
-            border-radius:16px; padding:14px 16px; margin-bottom:10px; }
-  .rowset span { color:#fff; font-weight:800; font-size:15px; }
-  .tgl { width:56px; height:31px; border-radius:100px; background:rgba(0,0,0,.45);
-         border:2px solid rgba(255,255,255,.2); position:relative; cursor:pointer; }
+            background:linear-gradient(180deg,#fdf4e2 0%,#f6e5c9 100%);
+            border:2px solid #fffaf0; border-radius:15px;
+            padding:14px 16px; margin-bottom:11px;
+            box-shadow:0 4px 0 rgba(150,84,26,.30), 0 6px 12px rgba(120,60,16,.16); }
+  .rowset span { color:#6b3a10; font-weight:900; font-size:15px; }
+  .tgl { width:56px; height:31px; border-radius:100px; background:#c9b193;
+         border:2px solid #fffaf0; position:relative; cursor:pointer;
+         box-shadow:inset 0 2px 4px rgba(120,80,36,.35); }
   .tgl i { position:absolute; top:2px; left:2px; width:23px; height:23px; border-radius:50%;
            background:#fff; transition:left .18s; }
   .tgl.on { background:#3ec97a; } .tgl.on i { left:27px; }
@@ -395,26 +418,33 @@
   #sizefill { height:12px; border-radius:6px; }
   @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
   .hidden { opacity:0; pointer-events:none; transition:opacity .3s; }
-  .rayon { display:inline-block; color:#5b2e07; font-size:12px; font-weight:900;
-           letter-spacing:2px; margin:22px 0 9px; padding:6px 15px 7px;
-           border-radius:11px;
-           background:linear-gradient(180deg,#ffd25e,#f0a52a);
-           box-shadow:0 3px 0 rgba(120,62,10,.7), inset 0 2px 0 rgba(255,255,255,.5);
-           text-shadow:0 1px 0 rgba(255,240,200,.5); }
+  /* Titre de rayon centre entre deux filets pointilles : il separe sans
+     peser, et la boutique se lit comme une suite de rayons. */
+  .rayon { display:flex; align-items:center; gap:11px; margin:20px 0 10px;
+           color:#8c4a15; font-size:12px; font-weight:900; letter-spacing:2.2px;
+           text-shadow:0 1px 0 rgba(255,230,190,.45); }
+  .rayon::before, .rayon::after { content:""; flex:1; height:3px; border-radius:2px;
+           background:repeating-linear-gradient(90deg,
+             rgba(140,74,21,.42) 0 8px, rgba(140,74,21,0) 8px 15px); }
   .rayon:first-child { margin-top:12px; }
 
   /* Banniere de rayon : une vignette a gauche, le compteur et le bouton a
      droite. Sert au globe comme aux claviers — deux grilles entieres repliees
      derriere une seule ligne chacune. */
-  .card.banniere { grid-column:1 / -1; display:flex; align-items:center; gap:12px; }
+  .card.banniere { grid-column:1 / -1; display:flex; flex-direction:row;
+                   align-items:center; gap:12px; padding:11px; }
+  .card.banniere .act { width:100%; margin:8px 0 0; border-radius:11px; padding:9px 6px;
+                        font-size:15px; }
   .card.banniere canvas, .card.banniere .vign { width:96px; height:96px; flex:0 0 96px; }
-  .card.banniere .vign { border-radius:14px; box-shadow:inset 0 0 0 2px rgba(0,0,0,.25); }
+  .card.banniere .vign { border-radius:14px;
+                         background:linear-gradient(180deg,#f3e3c6,#e6cfa6);
+                         box-shadow:inset 0 2px 5px rgba(150,105,50,.30); }
   .card.banniere .vign.emo { display:flex; align-items:center; justify-content:center;
                              font-size:44px; line-height:1;
-                             background:linear-gradient(180deg,#4a2c14 0%,#2e1a0a 100%); }
+                             background:linear-gradient(180deg,#f3e3c6,#e6cfa6); }
   .card.banniere .txt { flex:1; min-width:0; }
   .card.banniere .nm { margin:0 0 2px; text-align:left; }
-  .card.banniere .sub { color:rgba(255,232,196,.78); font-size:11px; font-weight:700;
+  .card.banniere .sub { color:rgba(107,58,16,.72); font-size:11px; font-weight:700;
                         text-align:left; margin-bottom:6px; }
   #gridClaviers { margin-top:9px; }
 
@@ -459,9 +489,10 @@
                   box-shadow:0 1px 0 #9c4a06, 0 4px 9px rgba(0,0,0,.45),
                              inset 0 3px 0 rgba(255,255,255,.55); }
   @media (prefers-reduced-motion: reduce) { #bSaut { transition:none; } }
-  .act .piece { display:inline-block; width:22px; height:22px; vertical-align:-5px;
+  .act .piece { display:inline-block; width:21px; height:21px; flex:0 0 21px;
                 margin-right:5px;
-                background:url('ui/k_piece.png') center/contain no-repeat; }
+                background:url('ui/k_piece.png') center/contain no-repeat;
+                filter:drop-shadow(0 1px 1px rgba(0,0,0,.3)); }
   /* Selection de niveau. La vignette reprend le degrade du ciel du niveau :
      on voit son ambiance avant d'y entrer, ce qui donne envie d'avancer. */
   /* L'interface de jeu appartient a la partie, pas au menu : les pieces, le
@@ -753,7 +784,7 @@
   <div class="body">
     <div class="rowset"><span data-i18n>Son</span><div class="tgl" id="tSnd"><i></i></div></div>
     <div class="rowset"><span data-i18n>Vibration</span><div class="tgl on" id="tVib"><i></i></div></div>
-    <div class="rowset"><span data-i18n>Meilleur score</span><span id="setBest" style="color:#ffd84d">27228</span></div>
+    <div class="rowset"><span data-i18n>Meilleur score</span><span id="setBest" style="color:#c07a12;font-weight:900">27228</span></div>
     <button class="rnd btnBig alt" id="bWipe" style="margin-top:22px" data-i18n>EFFACER MA PROGRESSION</button>
   </div>
 </div>
@@ -3487,9 +3518,9 @@ function peindreApercus() {
 function majBoutique() {
   $("gridGems").innerHTML = PACKS.map(function (p) {
     return '<div class="card pack' + (p.best ? " best" : "") + '" data-t="g" data-id="' + p.id + '">'
-      + (p.best ? '<div class="ruban">MEILLEURE OFFRE</div>' : "")
+      + (p.best ? '<div class="ruban">' + T("MEILLEURE OFFRE") + '</div>' : "")
+      + '<div class="qte">' + p.n + '</div>'
       + '<div class="sw tresor"><img src="ui/' + p.img + '.png" alt=""></div>'
-      + '<div class="nm">' + ICO_DIAMANT + p.n + '</div>'
       + '<button class="act buy">' + p.eur + '</button></div>';
   }).join("");
   $("gridBalls").innerHTML = BALLS.map(function (b) { return carte(b, "b"); }).join("");
