@@ -133,14 +133,43 @@
   .rnd { border:none; background:none; font-weight:900; letter-spacing:.5px;
          font-family:inherit; cursor:pointer; padding:0; }
 
-  .btnBig { display:block; width:min(290px,78vw); aspect-ratio:3.30;
-            margin:0 auto 10px; font-size:18px; color:#5c2f08;
-            background:url("ui/btn_orange_long.png") center/100% 100% no-repeat;
-            text-shadow:0 2px 0 rgba(255,236,190,.55); transition:transform .09s; }
-  .btnBig.alt { color:#f6d9b4; text-shadow:0 2px 0 rgba(0,0,0,.45);
-                background-image:url("ui/btn_brun_long.png"); }
-  .btnBig:active { transform:translateY(3px) scale(.985); }
-  .btnBig.petit { width:min(250px,70vw); font-size:15px; margin-bottom:7px; }
+  /* BOUTONS DESSINES. Ils reposaient sur une image de fond au rapport 3,30,
+     etiree a 100% x 100% : des que la boite changeait de proportions — et le
+     bouton principal est en 2,55 — les coins s'ovalisaient. Trace en CSS, le
+     bouton garde sa forme a toute taille, reste net a tout ecran, et adopte
+     enfin le carre arrondi demande plutot que la pastille. */
+  .btnBig { display:block; width:min(290px,78vw); margin:0 auto 10px;
+            padding:15px 20px; border-radius:19px; border:none;
+            font-size:18px; color:#5b2e07; line-height:1.15;
+            background:linear-gradient(180deg,#ffc054 0%,#fb9a2c 46%,#e9761a 100%);
+            box-shadow:0 6px 0 #a34c07, 0 10px 18px rgba(0,0,0,.34),
+                       inset 0 2px 0 rgba(255,255,255,.62),
+                       inset 0 -3px 0 rgba(120,55,0,.20);
+            text-shadow:0 2px 0 rgba(255,238,196,.55);
+            transition:transform .07s, box-shadow .07s;
+            position:relative; overflow:hidden; isolation:isolate; }
+  /* Reflet bonbon : une lueur sur la moitie haute, comme sur les boutons du
+     kit. C'est ce qui donnait leur matiere aux anciennes pastilles ; sans lui
+     le carre arrondi paraissait plat et administratif. */
+  .btnBig::before { content:""; position:absolute; left:6%; right:6%; top:5%;
+                    height:42%; border-radius:14px 14px 22px 22px;
+                    background:linear-gradient(180deg,rgba(255,255,255,.50),
+                                               rgba(255,255,255,.06));
+                    pointer-events:none; z-index:-1; }
+  .btnBig.alt::before { background:linear-gradient(180deg,rgba(255,255,255,.22),
+                                                   rgba(255,255,255,.03)); }
+  .btnBig.alt { color:#f7dcb8; text-shadow:0 2px 0 rgba(0,0,0,.42);
+                background:linear-gradient(180deg,#a0653a 0%,#834f2b 48%,#6a3d1f 100%);
+                box-shadow:0 6px 0 #45240f, 0 10px 18px rgba(0,0,0,.34),
+                           inset 0 2px 0 rgba(255,255,255,.28),
+                           inset 0 -3px 0 rgba(0,0,0,.22); }
+  .btnBig:active { transform:translateY(5px);
+                   box-shadow:0 1px 0 #a34c07, 0 3px 8px rgba(0,0,0,.34),
+                              inset 0 2px 0 rgba(255,255,255,.55); }
+  .btnBig.alt:active { box-shadow:0 1px 0 #45240f, 0 3px 8px rgba(0,0,0,.34),
+                                  inset 0 2px 0 rgba(255,255,255,.24); }
+  .btnBig.petit { width:min(250px,70vw); font-size:15px; margin-bottom:7px;
+                  padding:12px 16px; border-radius:16px; }
 
   .btnIco { width:52px; height:52px; background:url("ui/ico_retour.png") center/contain no-repeat;
             font-size:0; }
@@ -227,15 +256,29 @@
                font-weight:900; border:none; font-family:inherit; }
   /* aspect-ratio 3.30 = celui de l'image : a hauteur fixe on l'ecrasait
      (ratio 7.9) et les bouts arrondis s'aplatissaient. */
-  .act { background:none; border:none; padding:0 0 4px; width:100%; aspect-ratio:3.30;
+  .act { border:none; padding:9px 6px; width:100%; border-radius:12px;
          display:flex; align-items:center; justify-content:center;
          background-size:100% 100%; background-repeat:no-repeat; font-size:13px; }
-  .act.buy { background-image:url("ui/btn_orange_long.png"); color:#5c2f08;
+  .act { position:relative; overflow:hidden; isolation:isolate; }
+  .act::before { content:""; position:absolute; left:7%; right:7%; top:6%;
+                 height:40%; border-radius:9px 9px 14px 14px;
+                 background:linear-gradient(180deg,rgba(255,255,255,.42),
+                                            rgba(255,255,255,.04));
+                 pointer-events:none; z-index:-1; }
+  .act.buy { color:#5b2e07;
+             background:linear-gradient(180deg,#ffc054 0%,#fb9a2c 46%,#e9761a 100%);
+             box-shadow:0 4px 0 #a34c07, inset 0 2px 0 rgba(255,255,255,.55);
              text-shadow:0 1px 0 rgba(255,236,190,.5); }
-  .act.use { background-image:url("ui/btn_brun_long.png"); color:#f6d9b4; }
-  .act.on  { background-image:url("ui/btn_orange_long.png"); color:#3f5c08;
+  .act.use { color:#f7dcb8;
+             background:linear-gradient(180deg,#a0653a 0%,#834f2b 48%,#6a3d1f 100%);
+             box-shadow:0 4px 0 #45240f, inset 0 2px 0 rgba(255,255,255,.26); }
+  .act.on  { color:#22400a;
+             background:linear-gradient(180deg,#a8e85c 0%,#79cc33 48%,#4f9b18 100%);
+             box-shadow:0 4px 0 #316a09, inset 0 2px 0 rgba(255,255,255,.55);
              filter:hue-rotate(58deg) saturate(1.25); }
-  .act.no  { background-image:url("ui/btn_brun_long.png"); color:rgba(255,214,160,.62);
+  .act.no  { color:rgba(255,214,160,.55);
+             background:linear-gradient(180deg,#6b4a30 0%,#553a25 48%,#422c1a 100%);
+             box-shadow:0 4px 0 #2c1b0e, inset 0 2px 0 rgba(255,255,255,.14);
              filter:grayscale(.7) brightness(.62); }
 
   .rowset { display:flex; align-items:center; justify-content:space-between;
@@ -394,6 +437,114 @@
   .niv .cadenas { position:absolute; inset:0; display:flex; align-items:center;
                   justify-content:center; }
   .niv .cadenas img { width:34px; height:34px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
+  /* L'interface de jeu appartient a la partie, pas au menu : les pieces, le
+     multiplicateur et les coeurs venaient de la demo qui tourne en fond et
+     n'y voulaient rien dire. */
+  body:not(.enJeu) #hud { opacity:0 !important; }
+
+  /* Hierarchie des boutons. Quatre boutons de meme taille ne disent pas quoi
+     faire ; JOUER est l'action principale et doit dominer, les deux annexes
+     partagent une ligne, les reglages s'effacent. */
+  #bPlay { width:min(300px,82vw); aspect-ratio:2.55; margin-bottom:12px;
+           display:flex; flex-direction:column; align-items:center;
+           justify-content:center; gap:1px; }
+  #bPlay .ligne1 { font-size:21px; letter-spacing:.5px; }
+  #bPlay .ligne2 { font-size:12px; font-weight:800; opacity:.72; letter-spacing:.3px; }
+  .rangBoutons { display:flex; gap:9px; justify-content:center;
+                 width:min(300px,82vw); margin:0 auto 9px; }
+  /* On ne force JAMAIS la hauteur de ces boutons : leur fond est une image de
+     rapport 3,30 et toute autre valeur l'ecrase. On fixe la largeur, le rapport
+     donne la hauteur. */
+  .btnBig.court { flex:1; width:auto; font-size:13px; margin:0; }
+  .btnBig.discret { width:min(136px,38vw); font-size:11px; opacity:.75; margin:0 auto; }
+  #start p { font-size:12px; opacity:.62; margin-bottom:2px; }
+  #boursesMenu { margin:8px 0 18px; }
+  #progNiv { color:rgba(255,255,255,.55); font-size:11px; font-weight:800;
+             letter-spacing:1.5px; margin-bottom:14px; }
+  /* ECRAN D'ACCUEIL. Les commandes secondaires passent en pastilles dans les
+     coins et laissent le centre au titre et au bouton de jeu — c'est la
+     disposition des jeux mobiles : une seule action evidente, le reste range
+     sur les bords. */
+  .coinsIco { position:absolute; top:calc(env(safe-area-inset-top,10px) + 14px);
+              display:flex; flex-direction:column; gap:10px; z-index:3; }
+  .coinsIco.gauche { left:16px; }
+  .coinsIco.droite { right:16px; }
+  .icoKit { width:58px; height:56px; border:none; background:none;
+            background-size:contain; background-repeat:no-repeat;
+            background-position:center; cursor:pointer; padding:0;
+            filter:drop-shadow(0 3px 4px rgba(0,0,0,.42));
+            transition:transform .08s; }
+  .icoKit:active { transform:translateY(3px) scale(.96); }
+
+  .bloclogo { margin-top:6vh; }
+  #start h1 { font-size:min(64px,17vw); }
+
+  .zonePlay { margin-top:14px; display:flex; flex-direction:column;
+              align-items:center; gap:8px; }
+  .grosPlay { width:118px; height:114px; border:none; background:none;
+              background-image:url('ui/k_play.png');
+              background-size:contain; background-repeat:no-repeat;
+              background-position:center; cursor:pointer; padding:0;
+              filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));
+              animation:respire 2.4s ease-in-out infinite; }
+  .grosPlay:active { transform:translateY(4px) scale(.96); animation:none; }
+  @keyframes respire { 0%,100%{transform:scale(1)} 50%{transform:scale(1.055)} }
+  @media (prefers-reduced-motion: reduce) { .grosPlay { animation:none; } }
+  #playSous { display:flex; flex-direction:column; align-items:center; gap:1px; }
+  #playSous b { color:#fff; font-size:15px; font-weight:900; letter-spacing:.5px;
+                text-shadow:0 2px 0 rgba(0,0,0,.45); }
+  #playSous span { color:rgba(255,255,255,.62); font-size:11px; font-weight:800; }
+  /* Selecteur de niveau : le visuel du kit sert de fond, les fleches sont
+     deux zones tactiles posees dessus. Elles sont larges — 34 % de la
+     largeur chacune — parce qu'au pouce on ne vise pas un chevron de 12 px. */
+  /* Le visuel du kit portait "LEVEL 3" incruste, qui se superposait au vrai
+     libelle. On ne garde donc que les deux embouts a fleche et on trace le
+     bandeau central — teintes relevees sur l'original : liseres blanc et bleu
+     pale, corps rose #ff66ff avec un reflet clair en haut. */
+  #selNiv { position:relative; width:min(268px,74vw); height:59px; margin-top:10px;
+            display:flex; align-items:center; justify-content:center; }
+  #selNiv::before { content:""; position:absolute; left:52px; right:52px; top:6px; bottom:8px;
+                    border-radius:14px;
+                    background:linear-gradient(180deg,#ffc054 0%,#fb9a2c 46%,#e9761a 100%);
+                    box-shadow:0 4px 0 #a34c07, inset 0 2px 0 rgba(255,255,255,.55);
+                    z-index:0; }
+  #selNiv .txt { position:relative; z-index:1; }
+  #selNiv .txt { display:flex; flex-direction:column; align-items:center;
+                 gap:0; pointer-events:none; padding-bottom:3px; }
+  #selNiv .txt b { color:#5b2e07; font-size:14px; font-weight:900; letter-spacing:.6px;
+                   text-shadow:0 2px 0 rgba(255,238,196,.5); }
+  #selNiv .txt span { color:rgba(91,46,7,.72); font-size:9px; font-weight:800;
+                      letter-spacing:.3px; }
+  #selNiv .fleche { position:absolute; top:0; bottom:0; width:38%; z-index:2;
+                    background:none; border:none; cursor:pointer; padding:0;
+                    background-size:auto 100%; background-repeat:no-repeat; }
+  #selNiv .fleche.g { left:0;  background-image:url('ui/c_fleche_g.png');
+                      background-position:left center; background-size:auto 52%; }
+  #selNiv .fleche.d { right:0; background-image:url('ui/c_fleche_d.png');
+                      background-position:right center; background-size:auto 52%; }
+  #selNiv .fleche:active { transform:scale(.92); }
+  #selNiv.bloque { filter:grayscale(.35) brightness(.85); }
+
+  /* Reglage du volume. La poignee vient du kit ; la piste et le remplissage
+     sont traces, sinon le niveau sonore serait fige dans l'image. */
+  /* Curseur repris dans la palette du jeu : socle chocolat, remplissage
+     caramel. Le kit lavande jurait avec tout le reste. */
+  #regMusique { display:flex; align-items:center; gap:9px; margin-top:9px;
+                width:min(268px,74vw); padding:7px 13px; border-radius:16px;
+                background:linear-gradient(180deg,#7a4a26,#5a3418);
+                box-shadow:0 4px 0 #3a2110, inset 0 2px 0 rgba(255,220,170,.30); }
+  #regMusique .lbl { color:#ffd9a8; font-size:10px; font-weight:900; letter-spacing:1px;
+                     text-shadow:0 2px 0 rgba(0,0,0,.45); flex:0 0 auto; }
+  #regMusique .piste { position:relative; flex:1; height:15px; border-radius:8px;
+                       background:#3f2512; box-shadow:inset 0 2px 4px rgba(0,0,0,.5);
+                       cursor:pointer; }
+  #regMusique .rempli { position:absolute; left:0; top:0; bottom:0; border-radius:8px;
+                        background:linear-gradient(180deg,#ffd25e,#f0a52a);
+                        box-shadow:inset 0 1px 0 rgba(255,255,255,.5); }
+  #regMusique .poignee { position:absolute; top:50%; width:30px; height:30px;
+                         transform:translate(-50%,-50%); pointer-events:none;
+                         background:url('ui/c_donut.png') center/contain no-repeat;
+                         filter:drop-shadow(0 2px 3px rgba(0,0,0,.45)); }
 </style>
 </head>
 <body>
@@ -451,20 +602,47 @@
 </div>
 
 <div id="start" class="screen">
-  <h1>THOCK</h1>
-  <p>glisse pour diriger. appuie pour sauter.</p>
-  <div class="lvl" style="margin:16px 0 6px">
-    <div class="etoile"><b id="lvlNum">14</b></div>
-    <div class="xpbar"><div class="xpfill" id="lvlFill" style="width: 53.8095%;"></div></div>
+  <div class="coinsIco gauche">
+    <button class="icoKit" id="bSet"  style="background-image:url('ui/c_choco.png')"></button>
+    <button class="icoKit" id="bNiv"  style="background-image:url('ui/c_niveaux.png')"></button>
   </div>
-  <div class="bourses" style="margin:6px 0 20px">
+  <div class="coinsIco droite">
+    <button class="icoKit" id="bShop" style="background-image:url('ui/c_boutique.png')"></button>
+    <button class="icoKit" id="bSon"  style="background-image:url('ui/c_son.png')"></button>
+  </div>
+
+  <div class="bloclogo">
+    <h1>THOCK</h1>
+    <p>glisse pour diriger. appuie pour sauter.</p>
+  </div>
+
+  <div class="lvl">
+    <div class="etoile"><b id="lvlNum">1</b></div>
+    <div class="xpbar"><div class="xpfill" id="lvlFill" style="width:0%"></div></div>
+  </div>
+  <div id="progNiv">1 NIVEAU SUR 6</div>
+  <div class="bourses" id="boursesMenu">
     <div class="purse gem"><span id="icoMenuGem"></span><b id="gemsMenu">0</b></div>
-    <div class="purse"><div class="c">🪙</div><b id="purseMenu">29357</b></div>
+    <div class="purse"><div class="c">🪙</div><b id="purseMenu">0</b></div>
   </div>
-  <button class="rnd btnBig" id="bPlay">JOUER</button>
-  <button class="rnd btnBig alt" id="bNiv">NIVEAUX</button>
-  <button class="rnd btnBig alt" id="bShop">BOUTIQUE</button>
-  <button class="rnd btnBig alt" id="bSet">RÉGLAGES</button>
+
+  <div class="zonePlay">
+    <button id="bPlay" class="grosPlay"></button>
+
+    <div id="selNiv">
+      <button class="fleche g" id="nivMoins" aria-label="Niveau precedent"></button>
+      <div class="txt"><b id="playNiv">NIVEAU 1</b><span id="playNom">Premiers pas</span></div>
+      <button class="fleche d" id="nivPlus" aria-label="Niveau suivant"></button>
+    </div>
+
+    <div id="regMusique">
+      <span class="lbl">MUSIQUE</span>
+      <div class="piste" id="pisteMus">
+        <div class="rempli" id="remplMus"></div>
+        <div class="poignee" id="poigneeMus"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="shop" class="sheet">
@@ -772,7 +950,7 @@ var KEYSETS = [
 
 var SAVE = { purse:0, balls:["blanc"], keys:["caramel"], ball:"blanc", key:"caramel",
              snd:true, vib:true, level:1, xp:0, gems:3,
-             jourCadeau:"", jourPubs:"", nbPubs:0, niveauMax:0, niveauSel:0 };
+             jourCadeau:"", jourPubs:"", nbPubs:0, niveauMax:0, niveauSel:0, vol:0.7 };
 
 /* Diamants : monnaie rare, gagnee aux paliers de niveau ou achetee avec des
    pieces. Elle ne sert QU'A reprendre une partie, ce qui lui donne une valeur
@@ -975,7 +1153,10 @@ function nextWord() {
 }
 
 function newKey(row, col, letter, bonus) {
-  var ks = keySet();
+  // La teinte des touches appartient au NIVEAU, plus au joueur : c'est elle
+  // qui fait qu'un niveau se reconnait au premier coup d'oeil, et un skin
+  // achetable l'aurait uniformise partout.
+  var ks = (NIVEAUX[niveau] || {}).touches || keySet();
   var p = ((row + col) % 2) ? ks.a : ks.b;
   return { row:row, col:col, letter:letter, bonus:!!bonus,
            h:p.h, s:p.s, l:p.l, press:0, pv:0, hit:false };
@@ -990,23 +1171,78 @@ function newKey(row, col, letter, bonus) {
    touche, pas sur le terrain. */
 var platEtat = null, platVide = 0;
 
-function poserPlateforme(index, slots) {
+/* Decalage lateral d'une touche de plateforme mouvante. Calcule a l'instant
+   du rendu plutot que stocke : la rangee est generee une fois pour toutes,
+   c'est l'affichage et la collision qui doivent bouger ensemble. */
+function dxTouche(k) {
+  return k.pamp ? k.pamp * Math.sin(performance.now() / 1000 * 0.85 + k.pph) : 0;
+}
+
+/* COULOIR SERPENTANT. Un chemin continu et etroit suspendu au-dessus du vide,
+   qui balaie fortement de gauche a droite. Pas de trou a sauter : ici tout se
+   joue au doigt. La trajectoire suit une sinusoide plutot qu'une marche
+   aleatoire — a cette vitesse le joueur doit pouvoir ANTICIPER la courbe, un
+   zigzag imprevisible ne serait qu'une punition. */
+/* ALTERNANCE DE SECTIONS. Le niveau enchaine les mecaniques deja apprises par
+   tranches d'environ 24 rangees. L'interet n'est pas la nouveaute mais la
+   TRANSITION : passer d'un couloir continu a des ilots separes demande de
+   changer de facon de jouer en pleine course. */
+var SECTIONS = ["plate", "mouv", "couloir", "plate"];
+
+function sectionDe(index) {
+  if (!(NIVEAUX[niveau] || {}).melange) return null;
+  return SECTIONS[Math.floor(Math.max(0, index - 16) / 24) % SECTIONS.length];
+}
+
+function poserCouloir(index, slots) {
+  var amp = (COLS - 1) / 2 - 1.2;
+  var centre = (COLS - 1) / 2 + Math.sin(index * 0.20) * amp
+                              + Math.sin(index * 0.077 + 2.1) * 1.1;
+  var prog = finRangee > 16 ? Math.max(0, Math.min(1, (index - 16) / (finRangee - 16))) : 0;
+  var larg = prog > 0.55 ? 2 : 3;              // il se resserre en seconde moitie
+  var lo = Math.max(0, Math.min(COLS - larg, Math.round(centre - (larg - 1) / 2)));
+  var poses = [];
+  for (var c = lo; c < lo + larg; c++) {
+    var k = newKey(index, c, ALPHA.charAt((Math.random() * 26) | 0));
+    k.dy = 0.95;
+    k.fragile = true;                          // s'effondre une fois touchee
+    slots[c] = k;
+    poses.push(c);
+  }
+  return poses;
+}
+
+function poserPlateforme(index, slots, forceMouv) {
   if (platVide > 0) { platVide--; return []; }        // le vide entre deux ilots
 
   if (!platEtat || index > platEtat.fin) {
     var larg = 3 + ((Math.random() * 2) | 0);
+    // progression dans le niveau : 0 au depart, 1 au portail
+    var prog = finRangee > 16 ? Math.max(0, Math.min(1, (index - 16) / (finRangee - 16))) : 0;
+    var NV = NIVEAUX[niveau] || {};
+    /* Morceau de bravoure final : sur les dernieres rangees avant le couloir
+       d'arrivee, les ilots se reduisent au minimum et s'ecourtent. Le portail
+       se merite au lieu de se cueillir. */
+    var enfer = NV.finaleDure && finRangee &&
+                index > finRangee - QUEUE_LIBRE - NV.finaleDure;
+    if (enfer) larg = 2;
     var lo = 1 + ((Math.random() * Math.max(1, COLS - larg - 1)) | 0);
     platEtat = {
-      fin: index + 5 + ((Math.random() * 3) | 0),   // assez long pour se replacer
+      fin: index + (enfer ? 3 : 5) + ((Math.random() * 3) | 0),
       lo: lo, hi: Math.min(COLS - 1, lo + larg - 1),
       sens: platEtat ? -platEtat.sens : 1,           // penche a l'oppose de la precedente
-      pente: 0.15 + Math.random() * 0.10
+      pente: 0.15 + Math.random() * 0.10,
+      // l'amplitude enfle avec l'avancee : le debut se lit, la fin se merite
+      amp: NV.mouvantes ? (0.22 + prog * 0.85 + (enfer ? 0.35 : 0)) * PITCH_X : 0,
+      ph: Math.random() * 6.28
     };
   }
   var p = platEtat, mid = (p.lo + p.hi) / 2, poses = [];
+  if (forceMouv !== undefined) p.amp = forceMouv ? Math.max(p.amp, 0.5 * PITCH_X) : 0;
   for (var c = p.lo; c <= p.hi; c++) {
     var k = newKey(index, c, ALPHA.charAt((Math.random() * 26) | 0));
     k.dy = 0.95 + p.sens * (c - mid) * p.pente;
+    k.pamp = p.amp; k.pph = p.ph;      // toutes les touches d'un ilot bougent ensemble
     slots[c] = k;
     poses.push(c);
   }
@@ -1030,9 +1266,19 @@ function makeRow(index) {
     return { slots:slots, need:"", pos:0, word:"" };
   }
 
-  if ((NIVEAUX[niveau] || {}).plateformes &&
+  var NVG = NIVEAUX[niveau] || {};
+  if ((NVG.plateformes || NVG.couloir) &&
       !(finRangee && index > finRangee - QUEUE_LIBRE)) {
-    var poses = poserPlateforme(index, slots);
+    var NVR = NIVEAUX[niveau] || {};
+    /* Zones d'acceleration : des tronçons ou la bille part nettement plus vite.
+       Elles reviennent a intervalle fixe pour rester previsibles — une
+       acceleration surprise au-dessus du vide serait une mort arbitraire. */
+    var vite = !!(NVR.zonesRapides && (index % 44) < 16);
+    var sect = sectionDe(index);
+    var poses;
+    if (sect === "couloir" || (!sect && NVR.couloir)) poses = poserCouloir(index, slots);
+    else poses = poserPlateforme(index, slots, sect ? (sect === "mouv") : undefined);
+    if (vite) for (var iv = 0; iv < poses.length; iv++) slots[poses[iv]].vite = true;
     /* Les plateformes portaient des touches muettes : plus de mot a completer,
        donc plus de multiplicateur ni de croissance de la bille. Le niveau
        perdait tout le systeme de score. La lettre du mot se pose au CENTRE de
@@ -1048,7 +1294,7 @@ function makeRow(index) {
       slots[cc].ci = planColorIdx;
       planPos++;
     }
-    return { slots:slots, need:needP, pos:posP, word:wordP, ci:planColorIdx };
+    return { slots:slots, need:needP, pos:posP, word:wordP, ci:planColorIdx, rapide:vite };
   }
 
   if (finRangee && index > finRangee - QUEUE_LIBRE) {   // approche du portail
@@ -1152,7 +1398,20 @@ function choisirMotif(idx, lo, hi) {
 
 function bombesDeRangee(idx, r) {
   if (idx <= 16) return;
-  if ((NIVEAUX[niveau] || {}).plateformes) return;   // le vide est deja la menace
+  var NVB = NIVEAUX[niveau] || {};
+  if ((NVB.plateformes || NVB.couloir) && !NVB.bombesAussi) return;  // le vide suffit
+
+  if (NVB.bombesAussi) {
+    /* Sur un ilot etroit, une bombe par rangee au maximum et seulement si au
+       moins trois touches restent : en poser deux, ou sur une plateforme de
+       deux, reviendrait a fermer le passage. */
+    var libres = [];
+    for (var cb = 0; cb < COLS; cb++) if (r.slots[cb]) libres.push(cb);
+    if (libres.length >= 3 && idx % 7 === 3) {
+      poserBombe(idx, libres[1 + ((Math.random() * (libres.length - 2)) | 0)], r);
+    }
+    return;
+  }
   if (finRangee && idx > finRangee - QUEUE_LIBRE) return;   // couloir d'arrivee
   var pl = plageLibre(r), lo = pl[0], hi = pl[1];
   // sous trois colonnes, poser quoi que ce soit revient a fermer le passage
@@ -1226,21 +1485,69 @@ var demo = false;
    qui l'ecraserait rendrait la boutique inutile. */
 var NIVEAUX = [
   { rangees: 110, diff: 0.00, nom: "Premiers pas",
-    ciel: ["#fbf7f0", "#e9dfd0", "#dfd0bb", "#c8ab8a", "#8a6742"], solH: 26, solS: 30 },
+    ciel: ["#fbf7f0", "#e9dfd0", "#dfd0bb", "#c8ab8a", "#8a6742"], solH: 26, solS: 30,
+    touches: { a:{h:33,s:46,l:82},  b:{h:25,s:36,l:67} } },
   { rangees: 140, diff: 0.16, nom: "Au-dessus du vide", plateformes: true,
-    ciel: ["#1b1030", "#2a1745", "#3a1d55", "#2d1440", "#140a20"], solH: 282, solS: 44 },
-  { rangees: 170, diff: 0.34, nom: "Champ de mines",
-    ciel: ["#e8f2ff", "#cfe0f2", "#b6cbe2", "#8aa2bd", "#4a5a72"], solH: 214, solS: 22 },
-  { rangees: 200, diff: 0.52, nom: "Passages etroits",
-    ciel: ["#f3e6ff", "#dfc9f2", "#c6a9e0", "#9d7ec0", "#4e3670"], solH: 276, solS: 26 },
-  { rangees: 230, diff: 0.70, nom: "Sur le fil",
-    ciel: ["#e6fff2", "#c6f0da", "#a6dcc0", "#79b295", "#2f5f4a"], solH: 156, solS: 26 },
-  { rangees: 270, diff: 0.88, nom: "Derniere ligne",
-    ciel: ["#2a2036", "#3a2a44", "#4a3348", "#5a3a3e", "#2a1a1c"], solH: 8, solS: 34 }
+    ciel: ["#1b1030", "#2a1745", "#3a1d55", "#2d1440", "#140a20"], solH: 282, solS: 44,
+    touches: { a:{h:190,s:60,l:78}, b:{h:275,s:42,l:64} } },
+  { rangees: 170, diff: 0.34, nom: "Coulee de lave",
+    plateformes: true, mouvantes: true, zonesRapides: true,
+    ciel: ["#3a0f0a", "#5c1a0c", "#7d2a10", "#9c3a12", "#2a0c06"], solH: 12, solS: 56,
+    touches: { a:{h:28,s:72,l:70}, b:{h:10,s:60,l:54} } },
+  { rangees: 200, diff: 0.52, nom: "Poussiere d'etoiles",
+    couloir: true, fragile: true, bonusVitesse: 0.020,
+    ciel: ["#05070f", "#0a0e1e", "#111634", "#1a1f42", "#04060c"], solH: 230, solS: 32,
+    touches: { a:{h:216,s:16,l:93}, b:{h:226,s:24,l:76} } },
+  { rangees: 230, diff: 0.70, nom: "Vents toxiques",
+    plateformes: true, melange: true, bombesAussi: true, vent: 0.055,
+    ciel: ["#dcff5c", "#a8d92e", "#6e9c22", "#4a3a6e", "#241838"], solH: 288, solS: 40,
+    touches: { a:{h:82,s:62,l:78}, b:{h:96,s:48,l:60} } },
+  { rangees: 270, diff: 0.88, nom: "Chaos",
+    plateformes: true, mouvantes: true, fragile: true, bombesAussi: true,
+    zonesRapides: true, vent: 0.072, accelere: true, chaos: true, finaleDure: 22,
+    ciel: ["#2a2036", "#3a2a44", "#4a3348", "#5a3a3e", "#2a1a1c"], solH: 8, solS: 34,
+    touches: { a:{h:14,s:44,l:76},  b:{h:352,s:34,l:60} } }
 ];
-function theme() { return NIVEAUX[niveau] || NIVEAUX[0]; }
+/* Le theme est fige pour cinq niveaux sur six. Le dernier fait defiler sa
+   teinte en continu : c'est le seul endroit du jeu ou le decor lui-meme devient
+   instable, et ca signale sans un mot que ce niveau n'obeit plus aux regles.
+   Le resultat est mis en cache par image — drawChocolate appelle theme() une
+   fois par bande de sol, soit une trentaine de fois. */
+var themeCache = null, themeImage = -1;
+
+function theme() {
+  var N = NIVEAUX[niveau] || NIVEAUX[0];
+  if (!N.chaos) return N;
+  var img = Math.floor(performance.now() / 33);
+  if (themeImage === img && themeCache) return themeCache;
+  var h = (performance.now() / 42) % 360;
+  function C(d, sa, l) { return "hsl(" + ((h + d) % 360) + "," + sa + "%," + l + "%)"; }
+  themeImage = img;
+  themeCache = { ciel: [C(0,74,90), C(28,64,74), C(56,58,58), C(84,52,38), C(112,46,16)],
+                 solH: (h + 190) % 360, solS: 48, touches: N.touches };
+  return themeCache;
+}
+
+function chaosActif() { return !!(NIVEAUX[niveau] || {}).chaos; }
 var QUEUE_LIBRE = 6;              // rangees pleines avant le portail
 var niveau = 0, finRangee = 0, DIFF_NIV = 0, gagne = false;
+
+/* VAGUE D'EFFONDREMENT. Une touche qui tombe DERRIERE une bille qui n'avance
+   que vers l'avant ne menace rien : l'effet etait purement decoratif. La vraie
+   menace, c'est un front de destruction qui remonte le parcours et te rattrape.
+   Il avance a cadence fixe, legerement plus vite que la bille NON boostee :
+   ramasser les lettres te fait prendre du champ, les rater te fait rattraper.
+   C'est ce qui donne enfin un enjeu de survie au systeme de mots. */
+var vague = -1, VAGUE_PAS = 0.082;    // en rangees par image
+
+/* VENT LATERAL. Une poussee continue sur le cote, en rafales. Elle ne remplace
+   pas le pilotage : elle le contrarie, si bien que tout ce que le joueur
+   maitrisait redevient difficile. Deux sinusoides de periodes tres differentes
+   se superposent — une lente qui donne la direction dominante, une rapide qui
+   fait la rafale — pour que le vent soit lisible sans jamais etre previsible
+   au point de s'ignorer. */
+var vent = 0;
+var malus = 0;                        // vitesse perdue en ratant des lettres
 
 function configNiveau(n) {
   niveau = Math.max(0, Math.min(NIVEAUX.length - 1, n));
@@ -1295,6 +1602,7 @@ function reset() {
   pops = []; parts = []; mobs = []; flyers = []; bombs = []; shake = 0; flash = 0;
   motif = null; reposBombes = 8; gagne = false;
   platEtat = null; platVide = 0; dyBille = 0;
+  vague = -1; malus = 0; vent = 0;
   scoreEl.textContent = "0";
   speed = 0.054; dist = 0; steerX = null;
   dead = false;
@@ -1396,13 +1704,18 @@ function pressKeysUnderBall() {
       var k = rd.slots[c];
       if (!k) continue;
       // recouvrement boite/cercle, tolerance = rayon de la bille
-      var dx = Math.abs(ball.x - colX(c)) - KEY_W / 2;
+      var dx = Math.abs(ball.x - colX(c) - dxTouche(k)) - KEY_W / 2;
       var dz = Math.abs(ball.z - rowZ(r)) - KEY_D / 2;
       var ox = Math.max(0, dx), oz = Math.max(0, dz);
       if (ox * ox + oz * oz > rc * rc) continue;
 
       k.press = 1; k.pv = 0;
-      if (!k.hit) { k.hit = true; fresh.push(k); }
+      if (!k.hit) {
+        k.hit = true; fresh.push(k);
+        // la touche fragile ne s'effondre pas sous le pied : le delai laisse
+        // le temps de la quitter, mais interdit d'y revenir
+        if (k.fragile && k.chute === undefined) k.chute = 26;
+      }
     }
   }
   if (!fresh.length) return;
@@ -1629,7 +1942,7 @@ function hasSupport() {
     for (var c = 0; c < COLS; c++) {
       var k = rd.slots[c];
       if (!k) continue;
-      if (Math.abs(ball.x - colX(c)) <= KEY_W / 2 + 0.12 &&
+      if (Math.abs(ball.x - colX(c) - dxTouche(k)) <= KEY_W / 2 + 0.12 &&
           Math.abs(ball.z - rowZ(r + d)) <= KEY_D / 2 + 0.12) return true;
     }
   }
@@ -1741,12 +2054,12 @@ function drawChocolate() {
   var cur = Math.floor(ball.z / PITCH_Z);
   var r0 = cur - TRAIL_ROWS - 3, r1 = cur + VIEW_ROWS + 10;
 
+  var TH = theme();
   for (var r = r1; r >= r0; r--) {
     var z0 = rowZ(r) - PITCH_Z / 2, z1 = rowZ(r) + PITCH_Z / 2;
     var e0 = elevAtZ(z0) + FLOOR_Y, e1 = elevAtZ(z1) + FLOOR_Y;
     var far = Math.max(0, Math.min(1, (r - cur) / (VIEW_ROWS + 8)));
     var L = 26 + far * 48;
-    var TH = theme();
     quad(proj(-hw, e0, z0), proj(hw, e0, z0), proj(hw, e1, z1), proj(-hw, e1, z1),
          "hsl(" + (TH.solH + far * 8) + "," + Math.max(4, TH.solS - far * 16) + "%," + L + "%)");
   }
@@ -1761,7 +2074,7 @@ function drawShadow(k) {
 }
 
 function capGeom(k) {
-  var cx = colX(k.col), cz = rowZ(k.row);
+  var cx = colX(k.col) + dxTouche(k), cz = rowZ(k.row);
   // dy : decalage vertical propre a la touche. Nul partout sauf sur les
   // plateformes, ou il varie d'une colonne a l'autre pour donner l'inclinaison.
   var e = rowElev(k.row) + (k.dy || 0);
@@ -1812,6 +2125,14 @@ function drawCap(k) {
   var pr = k.press;
   var L = k.l + pr * 8, S = k.s;
   var hue = k.h;
+  /* Une zone rapide doit se voir de LOIN, sinon elle se subit au lieu de
+     s'anticiper. Un simple decalage de teinte se noyait dans le decor lave ;
+     on force donc une couleur ardente franche plutot qu'une nuance. */
+  if (k.vite) {
+    var bat = 0.5 + 0.5 * Math.sin(performance.now() / 190 + k.row * 0.8);
+    hue = 44; S = 96; L = 66 + bat * 10 + pr * 6;
+  }
+  if (chaosActif()) hue = (hue + performance.now() / 42) % 360;
 
   if (k.bonus) {
     var wc = WORD_COLORS[k.ci || 0];
@@ -1826,6 +2147,16 @@ function drawCap(k) {
     hg.addColorStop(1, "hsla(" + wc.h + "," + wc.s + "%,58%,0)");
     ctx.fillStyle = hg;
     ctx.beginPath(); ctx.arc(hc[0], hc[1], hr, 0, Math.PI * 2); ctx.fill();
+  }
+
+  if (k.vite) {                              // halo au sol, visible sous l'ilot
+    var vc = proj(colX(k.col) + dxTouche(k), rowElev(k.row) + (k.dy || 0) + 0.05, rowZ(k.row));
+    var vr = Math.max(5, vc[2] * (1.05 + 0.30 * Math.sin(performance.now() / 190 + k.row * 0.8)));
+    var vg = ctx.createRadialGradient(vc[0], vc[1], vr * 0.12, vc[0], vc[1], vr);
+    vg.addColorStop(0, "rgba(255,214,90,.42)");
+    vg.addColorStop(1, "rgba(255,150,20,0)");
+    ctx.fillStyle = vg;
+    ctx.beginPath(); ctx.arc(vc[0], vc[1], vr, 0, Math.PI * 2); ctx.fill();
   }
 
   // Aplats + un SEUL contour sur le plateau. Les degrades par touche et les
@@ -1843,6 +2174,21 @@ function drawCap(k) {
   var mbx = (g.tbl[0] + g.tbr[0]) / 2, mby = (g.tbl[1] + g.tbr[1]) / 2;
   var tw = Math.hypot(g.tfr[0] - g.tfl[0], g.tfr[1] - g.tfl[1]);
   var td = Math.hypot(mbx - mfx, mby - mfy);
+
+  /* Chevron pointe vers l'AVANT du parcours : la couleur dit "il se passe
+     quelque chose", la fleche dit "ca pousse dans ce sens". Dessine sous la
+     lettre, en translucide, pour ne pas gener la lecture du mot. */
+  if (k.vite && tw > 10) {
+    var bat2 = 0.5 + 0.5 * Math.sin(performance.now() / 190 + k.row * 0.8);
+    var lx = g.tfl[0] * 0.74 + g.tbl[0] * 0.26, ly = g.tfl[1] * 0.74 + g.tbl[1] * 0.26;
+    var rx = g.tfr[0] * 0.74 + g.tbr[0] * 0.26, ry = g.tfr[1] * 0.74 + g.tbr[1] * 0.26;
+    ctx.save();
+    ctx.globalAlpha = 0.35 + 0.40 * bat2;
+    ctx.fillStyle = "#fff3b0";
+    ctx.beginPath(); ctx.moveTo(mbx, mby); ctx.lineTo(lx, ly); ctx.lineTo(rx, ry);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
   if (tw > 8) {
     var gi = ALPHA.indexOf(k.letter);
     if (gi >= 0) {
@@ -2078,7 +2424,7 @@ function drawBall() {
     for (var cc = 0; cc < COLS; cc++) {
       var kk = rSous.slots[cc];
       if (!kk) continue;
-      var dd = Math.abs(colX(cc) - ball.x);
+      var dd = Math.abs(colX(cc) + dxTouche(kk) - ball.x);
       if (dd < meilleur) { meilleur = dd; kSous = kk; }
     }
     if (meilleur > KEY_W * 0.75) kSous = null;
@@ -2087,7 +2433,16 @@ function drawBall() {
   /* Au-dessus du vide il n'y a aucune touche sous la bille : sans memoire,
      elle perdait d'un coup le decalage de sa plateforme et plongeait en plein
      saut. On conserve donc la derniere hauteur connue. */
-  if (kSous) dyBille = kSous.dy || 0;
+  /* La hauteur de reference etait recopiee telle quelle depuis la touche sous
+     la bille, a chaque image. En vol, la bille survole des plateformes dont le
+     dy differe — et comme le saut s'ajoute A CETTE REFERENCE, un changement en
+     plein vol se voyait comme un second bond. D'ou la sensation de double saut.
+     Deux regles : la reference est GELEE tant qu'on est en l'air, et elle est
+     lissee au sol pour absorber le passage d'une pente a l'autre. */
+  if (!jumping && jy <= 0.01) {
+    var cibleDy = kSous ? (kSous.dy || 0) : dyBille;
+    dyBille += (cibleDy - dyBille) * 0.30;
+  }
   var dessus = elevAtZ(ball.z) + dyBille + CAP_H * (1 - enfonce * TRAVEL);
   var y = ball.y + jy + dessus + ball.r * 0.94;   // legerement enchassee
   var c = proj(ball.x, y, ball.z);
@@ -2186,7 +2541,20 @@ function frame(now) {
     // La montee freinait jusqu'a 0,032 sans bonus : on rampait des qu'on
     // ratait une lettre. Penalite de pente reduite, socle et plafond releves.
     slopeSpd = Math.max(-0.014, Math.min(0.050, slopeSpd));
-    speed = Math.max(0.044, Math.min(0.112, 0.064 + dist * 0.00015) + boost + slopeSpd);
+    var rIci = rowAt(Math.round(ball.z / PITCH_Z));
+    var coupDeFouet = (rIci && rIci.rapide) ? 0.034 : 0;
+    var NVS = NIVEAUX[niveau] || {};
+    var vNiv = NVS.bonusVitesse || 0;
+    /* Acceleration continue : elle suit l'avancee dans le niveau et ne
+       redescend jamais, contrairement au boost qui s'epuise. A l'arrivee la
+       bille va pres de deux fois plus vite qu'au niveau 1. */
+    if (NVS.accelere && finRangee > 16) {
+      var av = Math.max(0, Math.min(1, (ball.z / PITCH_Z - 16) / (finRangee - 16)));
+      vNiv += av * 0.048;
+    }
+    malus = Math.max(0, malus - 0.00016 * dt);
+    speed = Math.max(0.044, Math.min(0.146, 0.064 + vNiv + dist * 0.00015)
+                            + boost + slopeSpd + coupDeFouet - malus);
 
     // saut
     if (jumping) {
@@ -2207,6 +2575,14 @@ function frame(now) {
       var k = 1 - Math.pow(Math.max(0.34, agil), dt);
       ball.x += (steerX - ball.x) * k;
     }
+    var forceVent = (NIVEAUX[niveau] || {}).vent || 0;
+    if (forceVent && !demo) {
+      var tv = now / 1000;
+      vent = forceVent * (Math.sin(tv * 0.31) * 0.65 + Math.sin(tv * 1.15 + 1.3) * 0.35);
+      ball.x += vent * dt;
+      if (steerX !== null) steerX += vent * dt * 0.35;   // le doigt subit aussi, mais moins
+    }
+
     var lim = (COLS * PITCH_X) / 2 + 0.6;
     ball.x = Math.max(-lim, Math.min(lim, ball.x));
 
@@ -2229,10 +2605,37 @@ function frame(now) {
 
     // le portail se franchit en roulant ou en sautant : exiger le saut
     // punirait un joueur qui a bien joue tout le niveau
+    /* La vague ne demarre qu'une fois le joueur installe : la declencher des
+       la premiere image ne laisserait aucune chance de comprendre. */
+    if (!demo && (NIVEAUX[niveau] || {}).fragile) {
+      var rBille = ball.z / PITCH_Z;
+      if (vague < 0 && rBille > 22) vague = rBille - 7;
+      if (vague >= 0) {
+        vague += VAGUE_PAS * dt;
+        // tout ce qu'elle depasse s'ecroule
+        for (var iv = 0; iv < rows.length; iv++) {
+          if (lowestRow + iv > vague) break;
+          var sv = rows[iv].slots;
+          for (var cv = 0; cv < COLS; cv++)
+            if (sv[cv] && sv[cv].chute === undefined) sv[cv].chute = 14;
+        }
+        if (vague >= rBille) { ball.vy = -0.012; die(); }
+      }
+    }
+
     if (!demo && finRangee && ball.z >= rowZ(finRangee)) gagnerNiveau();
 
     ensureRows(Math.floor(ball.z / PITCH_Z) + VIEW_ROWS + 6);
-    while (Math.floor(ball.z / PITCH_Z) - lowestRow > TRAIL_ROWS + 2) { rows.shift(); lowestRow++; }
+    while (Math.floor(ball.z / PITCH_Z) - lowestRow > TRAIL_ROWS + 2) {
+      // une lettre doree qui sort du champ sans avoir ete prise coute cher :
+      // c'est le pendant du boost, et ce qui rend la poursuite pilotable
+      var vieille = rows[0];
+      if (vieille) for (var cm = 0; cm < COLS; cm++) {
+        var km = vieille.slots[cm];
+        if (km && km.bonus && !km.hit) { malus = Math.min(0.026, malus + 0.010); break; }
+      }
+      rows.shift(); lowestRow++;
+    }
   }
 
   if (dead) {                       // chute
@@ -2279,9 +2682,16 @@ function frame(now) {
       var k = rows[i].slots[c];
       if (!k) continue;
       var tgt = 0;
-      var dx = Math.abs(ball.x - colX(c)) - KEY_W / 2, dz = Math.abs(ball.z - rowZ(k.row)) - KEY_D / 2;
+      var dx = Math.abs(ball.x - colX(c) - dxTouche(k)) - KEY_W / 2, dz = Math.abs(ball.z - rowZ(k.row)) - KEY_D / 2;
       var ox = Math.max(0, dx), oz = Math.max(0, dz);
       if (rcv > 0 && ox * ox + oz * oz <= rcv * rcv) tgt = 1;
+      if (k.chute !== undefined) {
+        k.chute -= dt;
+        // elle s'enfonce et bascule avant de disparaitre : sans cette descente
+        // elle s'evanouirait d'un coup et la chute paraitrait arbitraire
+        k.dy -= 0.055 * dt;
+        if (k.chute <= 0) { rows[i].slots[c] = null; continue; }
+      }
       k.pv += (tgt - k.press) * (tgt ? 0.20 : 0.075) * dt;
       k.pv *= Math.pow(0.80, dt);
       k.press += k.pv * dt;
@@ -2373,8 +2783,31 @@ function frame(now) {
     ctx.fill();
   }
 
+  /* SIGNAL DE LA VAGUE. Elle remonte par l'arriere, or la camera ne montre que
+     trois rangees en arriere : sans indice a l'ecran, la mort serait invisible
+     et donc arbitraire. Une lueur rouge grandit depuis le BAS du cadre — la
+     direction d'ou vient la menace — et pulse de plus en plus vite. */
+  if (playing && vague >= 0) {
+    var ecart = ball.z / PITCH_Z - vague;
+    if (ecart < 11) {
+      var urgence = Math.max(0, Math.min(1, (11 - ecart) / 11));
+      var bat = 0.72 + 0.28 * Math.sin(performance.now() / (150 - urgence * 95));
+      var haut = H * (0.16 + urgence * 0.30);
+      var lg = ctx.createLinearGradient(0, H, 0, H - haut);
+      lg.addColorStop(0, "rgba(255,44,20," + (0.60 * urgence * bat).toFixed(3) + ")");
+      lg.addColorStop(0.45, "rgba(220,30,10," + (0.26 * urgence * bat).toFixed(3) + ")");
+      lg.addColorStop(1, "rgba(180,20,0,0)");
+      ctx.fillStyle = lg; ctx.fillRect(0, H - haut, W, haut);
+      if (urgence > 0.55) shake = Math.max(shake, (urgence - 0.55) * 9);
+    }
+  }
+
   // lignes de fuite : leur intensite suit le recul de camera
-  var rush = Math.max(0, Math.min(1, camExtra / 0.40));
+  var rIci2 = rowAt(Math.round(ball.z / PITCH_Z));
+  var dansBoost = !!(rIci2 && rIci2.rapide && playing);
+  // les lignes de fuite montent d'un cran : c'est ce qui fait SENTIR la vitesse
+  var rush = Math.max(0, Math.min(1, camExtra / 0.40)) + (dansBoost ? 0.55 : 0);
+  rush = Math.min(1, rush);
   if (rush > 0.03) {
     ctx.save();
     ctx.lineCap = "round";
@@ -2594,7 +3027,7 @@ var MUS = null, musDemandee = false;
 function musique(actif) {
   if (!MUS) MUS = document.getElementById("musique");
   if (!MUS) return;
-  MUS.volume = 0.42;
+  MUS.volume = 0.5 * volMus();
   if (actif && SAVE.snd) {
     musDemandee = true;
     var p = MUS.play();
@@ -2698,7 +3131,48 @@ function formatNombre(n) {
 
 function $(id) { return document.getElementById(id); }
 
+function volMus() {
+  var v = SAVE.vol; return (v === undefined ? 0.7 : Math.max(0, Math.min(1, v)));
+}
+
+/* Le fond de l'accueil est la partie de demonstration. La relancer sur le
+   niveau selectionne fait que le decor change avec le choix : on voit
+   l'ambiance du niveau avant d'y entrer. */
+/* Le curseur est libelle MUSIQUE : il ne doit donc toucher qu'a la musique,
+   pas au gain general. Le couplage au master etait en plus invisible depuis
+   l'accueil, ou la demo force le silence. */
+function appliquerVolume() {
+  var v = volMus();
+  var r = $("remplMus"), po = $("poigneeMus");
+  if (r) r.style.width = (v * 100) + "%";
+  if (po) po.style.left = (v * 100) + "%";
+  if (!MUS) MUS = document.getElementById("musique");
+  if (MUS) MUS.volume = 0.5 * v;
+}
+
+function changerNiveau(d) {
+  var max = SAVE.niveauMax || 0;
+  var n = (SAVE.niveauSel || 0) + d;
+  if (n < 0 || n > max) { playHurt(); return; }
+  SAVE.niveauSel = n; persist();
+  playBois();
+  majMenuNiveau();
+  if (demo) lancerDemo();          // le decor reprend l'ambiance du niveau
+}
+
+function majMenuNiveau() {
+  var n = Math.min(NIVEAUX.length - 1, SAVE.niveauSel || 0);
+  var a = $("playNiv"), b = $("playNom"), c = $("progNiv");
+  if (a) a.textContent = "NIVEAU " + (n + 1);
+  if (b) b.textContent = NIVEAUX[n].nom;
+  if (c) c.textContent = ((SAVE.niveauMax || 0) + 1) + " NIVEAUX SUR " + NIVEAUX.length;
+  var sel = $("selNiv");
+  if (sel) sel.classList.toggle("bloque", (SAVE.niveauMax || 0) === 0);
+}
+
 function majBourse() {
+  majMenuNiveau();
+  appliquerVolume();
   ["gemsShop", "gemsMenu", "gemsPays", "gemsClav"].forEach(function (nid) {
     var n = $(nid); if (n) n.textContent = formatNombre(SAVE.gems);
   });
@@ -2817,17 +3291,10 @@ function majBoutique() {
   $("pursePays").textContent = formatNombre(SAVE.purse);
   $("purseClav").textContent = formatNombre(SAVE.purse);
 
-  var kEq = KEYSETS[0];
-  for (var kk = 0; kk < KEYSETS.length; kk++) if (KEYSETS[kk].id === SAVE.key) kEq = KEYSETS[kk];
-  var raies = "repeating-linear-gradient(135deg,hsl(" + kEq.a.h + "," + kEq.a.s + "%," + kEq.a.l
-            + "%) 0 13px,hsl(" + kEq.b.h + "," + kEq.b.s + "%," + kEq.b.l + "%) 13px 26px)";
-  $("gridClaviers").innerHTML =
-    '<div class="card banniere" data-t="c" data-id="__claviers">'
-    + '<div class="vign" style="background:' + raies + '"></div>'
-    + '<div class="txt"><div class="nm">Claviers</div>'
-    + '<div class="sub">' + SAVE.keys.length + " débloqué" + (SAVE.keys.length > 1 ? "s" : "")
-    + " sur " + KEYSETS.length + '</div>'
-    + '<button class="act buy">CHOISIR</button></div></div>';
+  /* Le rayon Claviers a ete retire : la teinte des touches appartient
+     desormais au niveau, pas au joueur. Un skin achetable l'aurait uniformisee
+     d'un bout a l'autre du jeu et annule la difference entre les niveaux. */
+  var gc = $("gridClaviers"); if (gc) gc.style.display = "none";
   peindreApercus();
   majBourse();
 }
@@ -2915,6 +3382,30 @@ tap($("bWipe"), function () {
 
 tap($("bPlay"), function () { ecranChargement(begin); });
 tap($("bNiv"), function () { ouvrir("niveaux"); });
+tap($("nivMoins"), function () { changerNiveau(-1); });
+tap($("nivPlus"),  function () { changerNiveau(1); });
+
+(function () {
+  var piste = $("pisteMus"); if (!piste) return;
+  function poser(e) {
+    var r = piste.getBoundingClientRect();
+    var t = e.changedTouches ? e.changedTouches[0] : e;
+    SAVE.vol = Math.max(0, Math.min(1, (t.clientX - r.left) / r.width));
+    persist(); appliquerVolume();
+  }
+  var glisse = false;
+  piste.addEventListener("touchstart", function (e) { e.preventDefault(); poser(e); }, { passive:false });
+  piste.addEventListener("touchmove",  function (e) { e.preventDefault(); poser(e); }, { passive:false });
+  piste.addEventListener("mousedown",  function (e) { glisse = true; poser(e); });
+  window.addEventListener("mousemove", function (e) { if (glisse) poser(e); });
+  window.addEventListener("mouseup",   function () { glisse = false; });
+})();
+tap($("bSon"), function () {          // pastille son de l'ecran d'accueil
+  SAVE.snd = !SAVE.snd; persist();
+  if (master) master.gain.value = SAVE.snd ? 0.85 : 0;
+  musique(SAVE.snd && !playing);
+  $("bSon").style.opacity = SAVE.snd ? "1" : ".45";
+});
 tap($("bShop"), function () { ouvrir("shop"); });
 tap($("bSet"),  function () { ouvrir("settings"); });
 tap($("bAgain"), function () { ecranChargement(begin); });
@@ -3037,7 +3528,7 @@ reset();
 function lancerDemo() {
   initAudio();
   reset();
-  configNiveau(0); finRangee = 0;        // la demo du menu n'a pas de fin
+  configNiveau(SAVE.niveauSel || 0); finRangee = 0;   // decor du niveau choisi, sans fin
   demo = true; playing = true;
   majBoutonSaut();
   if (master) master.gain.value = 0;      // muet tant qu'on n'a pas joue
