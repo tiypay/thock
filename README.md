@@ -1,4 +1,4 @@
-# THOCK
+# KLiCKY
 
 Endless runner : une bille roule sur un clavier en chocolat. Chaque touche
 enfoncee joue un son de switch mecanique. On steer au doigt, on grossit en
@@ -27,4 +27,4 @@ puis http://localhost:8125
 
 ## Commandes
 
-Glisser pour diriger, glisser vers le haut pour sauter.
+Glisser pour diriger, appuyer pour sauter.
