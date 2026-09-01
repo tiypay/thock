@@ -106,13 +106,18 @@
 
   /* ---------- ecrans meta ---------- */
   .sheet { position:fixed; inset:0; z-index:12; display:none; flex-direction:column;
-           background:linear-gradient(180deg,#2a1f4f 0%,#5d3a54 45%,#3a2213 100%); }
+           background:
+             radial-gradient(120% 55% at 50% -6%, rgba(255,186,92,.30) 0%,
+                                                  rgba(255,150,60,0) 62%),
+             linear-gradient(180deg,#6d3d17 0%,#4d2711 34%,#361a0c 68%,#241107 100%); }
   .sheet.on { display:flex; }
   /* space-between reparti sur quatre enfants collait le titre aux bourses.
      Le titre pousse desormais les compteurs a droite, et l'entete se serre
      un cran pour tenir deux bourses sur un ecran de 375 px. */
   .sheet .hdr { display:flex; align-items:center; gap:10px;
-                padding:calc(env(safe-area-inset-top,8px) + 14px) 14px 12px; }
+                padding:calc(env(safe-area-inset-top,8px) + 14px) 14px 12px;
+                background:linear-gradient(180deg,rgba(60,28,10,.55),rgba(60,28,10,0));
+                position:relative; z-index:1; }
   /* flex-shrink vaut 1 par defaut : avec deux bourses et un gros solde, la
      ligne se serrait et c'est le bouton retour qui payait (52 -> 22 px de
      large). Rien ne retrecit sauf le titre, qui se tronque proprement. */
@@ -211,9 +216,19 @@
              text-shadow:0 2px 0 rgba(52,16,4,.85); }
 
   .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; margin-top:6px; }
-  .card { background:rgba(0,0,0,.26); border:2px solid rgba(255,255,255,.13);
-          border-radius:18px; padding:11px; text-align:center; }
-  .card.eq { border-color:#ffd84d; background:rgba(255,216,77,.13); }
+  /* Le fond etait un noir translucide neutre, sans rapport avec le bois du
+     jeu. Panneau chaud, liseré clair en haut, ombre portee : la carte a une
+     epaisseur, comme les planches des boutons. */
+  .card { background:linear-gradient(180deg,#8a4d1f 0%,#6b3915 40%,#4d2710 100%);
+          border:2px solid rgba(255,206,142,.26); border-radius:18px;
+          padding:11px; text-align:center;
+          box-shadow:0 4px 0 rgba(43,20,8,.75),
+                     inset 0 2px 0 rgba(255,224,176,.22),
+                     inset 0 -10px 18px rgba(40,17,6,.35); }
+  .card.eq { border-color:#ffd84d;
+             background:linear-gradient(180deg,#a3651f 0%,#844c17 42%,#5e320f 100%);
+             box-shadow:0 4px 0 rgba(63,32,8,.75), 0 0 0 1px rgba(255,216,77,.35),
+                        inset 0 2px 0 rgba(255,236,190,.32); }
   .card .sw { height:62px; border-radius:13px; margin-bottom:8px; position:relative; overflow:hidden; }
   /* socle : la bille est posee dessus, pas flottante dans une vignette */
   .card.pack { position:relative; }
@@ -250,9 +265,12 @@
   .grid.trio .card.best { box-shadow:0 0 0 1px rgba(255,216,77,.35),
                                      0 6px 22px rgba(255,190,60,.22); }
   .grid.trio .ruban { font-size:8px; padding:3px 7px; letter-spacing:.3px; }
-  .card .sw.socle { background:linear-gradient(180deg,#4a2c14 0%,#2e1a0a 100%); }
+  .card .sw.socle { background:linear-gradient(180deg,#33190a 0%,#1e0e05 100%);
+                    box-shadow:inset 0 3px 7px rgba(0,0,0,.6),
+                               inset 0 -1px 0 rgba(255,200,140,.14); }
   .card canvas.apercu { width:100%; height:100%; display:block; }
-  .card .nm { color:#fff; font-size:13px; font-weight:800; margin-bottom:4px; }
+  .card .nm { color:#fff6e4; font-size:13px; font-weight:800; margin-bottom:4px;
+              text-shadow:0 2px 0 rgba(50,22,6,.55); }
   .card .act { display:block; width:100%; padding:8px 0; border-radius:10px; font-size:17px;
                font-weight:900; border:none; font-family:inherit; }
   /* aspect-ratio 3.30 = celui de l'image : a hauteur fixe on l'ecrasait
@@ -278,6 +296,22 @@
              border-image:url('ui/b_barre_vide.png') 46 112 fill / 15px 30px / 0 stretch;
              filter:saturate(.5) brightness(.8);
              filter:grayscale(.7) brightness(.62); }
+
+  /* Choix de la langue : une ligne par langue, le code en pastille pour que
+     l'oeil accroche meme quand on ne lit pas encore la langue affichee. */
+  #listeLangues { display:flex; flex-direction:column; gap:9px; margin-top:4px; }
+  .rangLang { display:flex; align-items:center; gap:13px; width:100%;
+              padding:13px 15px; border-radius:16px; font-family:inherit;
+              cursor:pointer; text-align:left;
+              background:rgba(58,28,10,.55); border:2px solid rgba(255,214,160,.18); }
+  .rangLang .code { flex:0 0 auto; min-width:42px; text-align:center;
+                    padding:5px 8px; border-radius:9px; font-size:13px; font-weight:900;
+                    color:#5b2e07; letter-spacing:.5px;
+                    background:linear-gradient(180deg,#ffd25e,#f0a52a);
+                    box-shadow:inset 0 2px 0 rgba(255,255,255,.5); }
+  .rangLang .nom { color:#ffe8c8; font-size:16px; font-weight:800; }
+  .rangLang.actif { border-color:#ffd84d; background:rgba(255,216,77,.14); }
+  .rangLang:active { transform:translateY(2px); }
 
   .rowset { display:flex; align-items:center; justify-content:space-between;
             background:rgba(0,0,0,.26); border:2px solid rgba(255,255,255,.13);
@@ -361,9 +395,13 @@
   #sizefill { height:12px; border-radius:6px; }
   @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
   .hidden { opacity:0; pointer-events:none; transition:opacity .3s; }
-  .rayon { color:rgba(255,255,255,.62); font-size:12px; letter-spacing:2.5px;
-           margin:20px 0 6px; }
-  .rayon:first-child { margin-top:10px; }
+  .rayon { display:inline-block; color:#5b2e07; font-size:12px; font-weight:900;
+           letter-spacing:2px; margin:22px 0 9px; padding:6px 15px 7px;
+           border-radius:11px;
+           background:linear-gradient(180deg,#ffd25e,#f0a52a);
+           box-shadow:0 3px 0 rgba(120,62,10,.7), inset 0 2px 0 rgba(255,255,255,.5);
+           text-shadow:0 1px 0 rgba(255,240,200,.5); }
+  .rayon:first-child { margin-top:12px; }
 
   /* Banniere de rayon : une vignette a gauche, le compteur et le bouton a
      droite. Sert au globe comme aux claviers — deux grilles entieres repliees
@@ -376,7 +414,7 @@
                              background:linear-gradient(180deg,#4a2c14 0%,#2e1a0a 100%); }
   .card.banniere .txt { flex:1; min-width:0; }
   .card.banniere .nm { margin:0 0 2px; text-align:left; }
-  .card.banniere .sub { color:rgba(255,214,160,.62); font-size:11px; font-weight:700;
+  .card.banniere .sub { color:rgba(255,232,196,.78); font-size:11px; font-weight:700;
                         text-align:left; margin-bottom:6px; }
   #gridClaviers { margin-top:9px; }
 
@@ -561,11 +599,11 @@
     </div>
   </div>
   <div id="wordWrap"><div id="word"></div></div>
-  <div id="streak" class="go">x3<span class="sub">SERIE</span></div>
+  <div id="streak" class="go">x3<span class="sub" data-i18n>SERIE</span></div>
   <div id="combo" class="go">JACKPOT +400</div>
-  <button id="bSaut" class="rnd" aria-label="Sauter"><i></i></button>
+  <button id="bSaut" class="rnd" aria-label="Sauter" data-i18n-aria><i></i></button>
   <div id="sizewrap">
-    <div id="sizelbl">TAILLE</div>
+    <div id="sizelbl" data-i18n>TAILLE</div>
     <div id="sizebar"><div id="sizefill" style="width: 100%;"></div></div>
   </div>
 </div>
@@ -576,9 +614,9 @@
   <div class="boite">
     <img id="payImg" src="" alt="" style="width:110px;margin:0 auto 6px;display:block">
     <h3 id="payTitre">Diamants</h3>
-    <p>Achat unique — pas d'abonnement.</p>
+    <p data-i18n>Achat unique — pas d'abonnement.</p>
     <div id="payPrix" style="color:#ffe0a8;font-size:26px;font-weight:900;margin-bottom:14px"></div>
-    <button class="rnd btnBig petit" id="payValider">PAYER</button>
+    <button class="rnd btnBig petit" id="payValider" data-i18n>PAYER</button>
     <div id="payEtat" style="color:#8fe8b0;font-size:13px;font-weight:700;min-height:18px;margin:6px 0"></div>
     <button class="rnd btnIco croix" id="payFermer" style="margin-top:2px"></button>
   </div>
@@ -586,9 +624,9 @@
 
 <div id="choix" class="modale">
   <div class="boite">
-    <h3>REPARTIR ?</h3>
-    <p>Tu reprends la ou tu es tombe,<br>score conserve.</p>
-    <button class="rnd btnBig petit" id="cPub">📺 REGARDER UNE PUB</button>
+    <h3 data-i18n>REPARTIR ?</h3>
+    <p><span data-i18n>Tu reprends la ou tu es tombe,</span><br><span data-i18n>score conserve.</span></p>
+    <button class="rnd btnBig petit" id="cPub" data-i18n>📺 REGARDER UNE PUB</button>
     <button class="rnd btnBig petit" id="cGems"><span id="icoGems"></span> <span id="prixGems">2</span> DIAMANTS</button>
     <button class="rnd btnIco croix" id="cFermer" style="margin-top:4px"></button>
   </div>
@@ -606,6 +644,8 @@
 <div id="start" class="screen">
   <div class="coinsIco gauche">
     <button class="icoKit" id="bSet"  style="background-image:url('ui/b_reglages.png')"></button>
+    <button class="icoKit" id="bLang" style="background-image:url('ui/b_langue.png')"
+            aria-label="Langue" data-i18n-aria></button>
   </div>
   <div class="coinsIco droite">
     <button class="icoKit" id="bShop" style="background-image:url('ui/b_boutique.png')"></button>
@@ -614,7 +654,7 @@
 
   <div class="bloclogo">
     <h1><img id="logoJeu" src="ui/logo.png" alt="KLiCKY"></h1>
-    <p>glisse pour diriger. appuie pour sauter.</p>
+    <p data-i18n>glisse pour diriger. appuie pour sauter.</p>
   </div>
 
   <div class="lvl">
@@ -632,13 +672,13 @@
     <div id="etoilesNiv"></div>
 
     <div id="selNiv">
-      <button class="fleche g" id="nivMoins" aria-label="Niveau precedent"></button>
+      <button class="fleche g" id="nivMoins" aria-label="Niveau precedent" data-i18n-aria></button>
       <div class="txt"><b id="playNiv">NIVEAU 1</b><span id="playNom">Premiers pas</span></div>
-      <button class="fleche d" id="nivPlus" aria-label="Niveau suivant"></button>
+      <button class="fleche d" id="nivPlus" aria-label="Niveau suivant" data-i18n-aria></button>
     </div>
 
     <div id="regMusique">
-      <span class="lbl">MUSIQUE</span>
+      <span class="lbl" data-i18n>MUSIQUE</span>
       <div class="piste" id="pisteMus">
         <div class="rempli" id="remplMus"></div>
         <div class="poignee" id="poigneeMus"></div>
@@ -650,21 +690,21 @@
 <div id="shop" class="sheet">
   <div class="hdr">
     <button class="rnd btnIco" data-close="shop">←</button>
-    <h2>Boutique</h2>
+    <h2 data-i18n>Boutique</h2>
     <div class="bourses">
       <div class="purse gem"><span id="icoPurse"></span><b id="gemsShop">0</b></div>
       <div class="purse"><div class="c"></div><b id="purseShop">29357</b></div>
     </div>
   </div>
   <div class="body">
-    <h3 class="rayon">BILLES</h3>
+    <h3 class="rayon" data-i18n>BILLES</h3>
     <div class="grid" id="gridBalls"></div>
-    <h3 class="rayon">COLLECTIONS</h3>
+    <h3 class="rayon" data-i18n>COLLECTIONS</h3>
     <div class="grid" id="gridGlobe"></div>
     <div class="grid" id="gridClaviers"></div>
-    <h3 class="rayon">GRATUIT</h3>
+    <h3 class="rayon" data-i18n>GRATUIT</h3>
     <div class="grid" id="gridGratuit"></div>
-    <h3 class="rayon">DIAMANTS</h3>
+    <h3 class="rayon" data-i18n>DIAMANTS</h3>
     <div class="grid trio" id="gridGems"></div>
   </div>
 </div>
@@ -672,7 +712,7 @@
 <div id="pays" class="sheet">
   <div class="hdr">
     <button class="rnd btnIco" data-close="pays">←</button>
-    <h2>Pays</h2>
+    <h2 data-i18n>Pays</h2>
     <div class="bourses">
       <div class="purse gem"><span id="icoPaysGem"></span><b id="gemsPays">0</b></div>
       <div class="purse"><div class="c"></div><b id="pursePays">0</b></div>
@@ -686,7 +726,7 @@
 <div id="claviers" class="sheet">
   <div class="hdr">
     <button class="rnd btnIco" data-close="claviers">←</button>
-    <h2>Claviers</h2>
+    <h2 data-i18n>Claviers</h2>
     <div class="bourses">
       <div class="purse gem"><span id="icoClavGem"></span><b id="gemsClav">0</b></div>
       <div class="purse"><div class="c"></div><b id="purseClav">0</b></div>
@@ -697,23 +737,31 @@
   </div>
 </div>
 
+<div id="langue" class="sheet">
+  <div class="hdr">
+    <button class="rnd btnIco" data-close="langue">←</button>
+    <h2 data-i18n>Langue</h2><div style="width:42px"></div>
+  </div>
+  <div class="body"><div id="listeLangues"></div></div>
+</div>
+
 <div id="settings" class="sheet">
   <div class="hdr">
     <button class="rnd btnIco" data-close="settings">←</button>
-    <h2>Réglages</h2><div style="width:42px"></div>
+    <h2 data-i18n>Réglages</h2><div style="width:42px"></div>
   </div>
   <div class="body">
-    <div class="rowset"><span>Son</span><div class="tgl" id="tSnd"><i></i></div></div>
-    <div class="rowset"><span>Vibration</span><div class="tgl on" id="tVib"><i></i></div></div>
-    <div class="rowset"><span>Meilleur score</span><span id="setBest" style="color:#ffd84d">27228</span></div>
-    <button class="rnd btnBig alt" id="bWipe" style="margin-top:22px">EFFACER MA PROGRESSION</button>
+    <div class="rowset"><span data-i18n>Son</span><div class="tgl" id="tSnd"><i></i></div></div>
+    <div class="rowset"><span data-i18n>Vibration</span><div class="tgl on" id="tVib"><i></i></div></div>
+    <div class="rowset"><span data-i18n>Meilleur score</span><span id="setBest" style="color:#ffd84d">27228</span></div>
+    <button class="rnd btnBig alt" id="bWipe" style="margin-top:22px" data-i18n>EFFACER MA PROGRESSION</button>
   </div>
 </div>
 
 <div id="over" class="screen hidden" style="display:none">
   <div id="note"></div>
   <div id="overPanel">
-    <div class="lbl">TOMBÉ</div>
+    <div class="lbl" data-i18n>TOMBÉ</div>
     <div class="big" id="finalScore">286</div>
   </div>
   <div id="lvlUp" style="display: none; color: rgb(127, 212, 255); font-size: 19px; font-weight: 900; letter-spacing: 1px; margin-bottom: 8px; text-shadow: rgba(0, 0, 0, 0.4) 0px 3px 0px;">NIVEAU 14 !</div>
@@ -723,8 +771,8 @@
   </div>
   <p id="finalInfo">meilleur : 27228   ·   combo 95   ·   jackpots 0</p>
   <div style="margin:16px 0 20px" class="purse"><div class="c"></div><b id="earned">+143</b></div>
-  <button class="rnd btnBig" id="bRepartir">REPARTIR</button>
-  <button class="rnd btnBig alt" id="bAgain">REJOUER</button>
+  <button class="rnd btnBig" id="bRepartir" data-i18n>REPARTIR</button>
+  <button class="rnd btnBig alt" id="bAgain" data-i18n>REJOUER</button>
   <button class="rnd btnIco retour" id="bMenu" style="margin-top:6px"></button>
 </div>
 
@@ -942,7 +990,7 @@ var KEYSETS = [
 var SAVE = { purse:0, balls:["blanc"], keys:["caramel"], ball:"blanc", key:"caramel",
              snd:true, vib:true, level:1, xp:0, gems:3,
              jourCadeau:"", jourPubs:"", nbPubs:0, niveauMax:0, niveauSel:0, vol:0.7,
-             etoiles:[] };
+             etoiles:[], langue:"" };
 
 /* Diamants : monnaie rare, gagnee aux paliers de niveau ou achetee avec des
    pieces. Elle ne sert QU'A reprendre une partie, ce qui lui donne une valeur
@@ -1003,6 +1051,174 @@ function gagnerXp(pts) {
   return montees;
 }
 var SAVE_DEFAUT = JSON.parse(JSON.stringify(SAVE));
+function langueDuTelephone() {
+  var n = (navigator.language || "fr").slice(0, 2).toLowerCase();
+  for (var i = 0; i < LANGUES.length; i++) if (LANGUES[i].id === n) return n;
+  return "fr";
+}
+/* LANGUES. Le texte francais sert de cle : une chaine sans traduction
+   s'affiche telle quelle plutot que de casser l'ecran. Ajouter une langue
+   revient a ajouter une entree ici, rien d'autre. */
+var LANGUES = [
+  { id:"fr", nom:"Français" },
+  { id:"en", nom:"English"  },
+  { id:"es", nom:"Español"  }
+];
+var TRAD = {
+  en: {
+    "glisse pour diriger. appuie pour sauter.": "swipe to steer. tap to jump.",
+    "MUSIQUE": "MUSIC", "NIVEAU": "LEVEL", "NIVEAUX SUR": "LEVELS OF",
+    "NIVEAU SUR": "LEVEL OF", "A DEBLOQUER": "LOCKED",
+    "Boutique": "Shop", "BILLES": "BALLS", "COLLECTIONS": "COLLECTIONS",
+    "GRATUIT": "FREE", "DIAMANTS": "GEMS",
+    "ÉQUIPÉ": "EQUIPPED", "UTILISER": "USE", "CHOISIR": "CHOOSE",
+    "OUVRIR": "OPEN", "PRIS": "TAKEN", "REGARDER": "WATCH", "DEMAIN": "TOMORROW",
+    "Cadeau du jour": "Daily gift",
+    "pièces": "coins", "diamant": "gem", "diamants": "gems",
+    "Déjà pris — reviens demain": "Already claimed — come back tomorrow",
+    "par pub": "per ad", "restante": "left", "restantes": "left",
+    "aujourd'hui": "today",
+    "Drapeaux du monde": "World flags",
+    "débloqué": "unlocked", "débloqués": "unlocked", "sur": "of",
+    "MEILLEURE OFFRE": "BEST VALUE",
+    "Achat unique — pas d'abonnement.": "One-time purchase — no subscription.",
+    "PAYER": "PAY", "Connexion au paiement...": "Connecting to payment...",
+    "crédités": "added",
+    "Pays": "Countries", "Claviers": "Keyboards",
+    "Réglages": "Settings", "Son": "Sound", "Vibration": "Vibration",
+    "Meilleur score": "Best score", "Langue": "Language",
+    "EFFACER MA PROGRESSION": "ERASE MY PROGRESS",
+    "TOMBÉ": "FALLEN", "TOMBE": "FALLEN", "REUSSI": "CLEARED",
+    "REPARTIR": "CONTINUE", "REJOUER": "PLAY AGAIN", "NIVEAU SUIVANT": "NEXT LEVEL",
+    "REPARTIR ?": "CONTINUE?",
+    "Tu reprends la ou tu es tombe,": "You start where you fell,",
+    "score conserve.": "your score is kept.",
+    "📺 REGARDER UNE PUB": "📺 WATCH AN AD",
+    "SERIE": "STREAK", "TAILLE": "SIZE", "meilleur :": "best:", "combo": "combo",
+    "jackpots": "jackpots", "Sauter": "Jump",
+    "Niveau precedent": "Previous level", "Niveau suivant": "Next level",
+    "Jouer": "Play", "Niveau verrouille": "Level locked",
+    "Premiers pas": "First steps", "Au-dessus du vide": "Over the void",
+    "Coulee de lave": "Lava flow", "Poussiere d'etoiles": "Stardust",
+    "Vents toxiques": "Toxic winds", "Chaos": "Chaos",
+    "Craie": "Chalk", "Menthe": "Mint", "Myrtille": "Blueberry",
+    "Fraise": "Strawberry", "Citron": "Lemon", "Lagon": "Lagoon",
+    "Appuie n'importe ou pour sauter par-dessus les bombes.":
+      "Tap anywhere to jump over the bombs.",
+    "Les touches dorées forment un mot : enchaîne-les pour le jackpot.":
+      "The golden keys spell a word: chain them for the jackpot.",
+    "Plus la bille grossit, plus chaque touche rapporte.":
+      "The bigger the ball, the more each key pays.",
+    "En descente tu prends de la vitesse. Anticipe.":
+      "You pick up speed downhill. Look ahead.",
+    "Une bombe coûte une vie. Il t'en reste trois.":
+      "A bomb costs one life. You have three.",
+    "Chaque mot a sa couleur. Le suivant se voit déjà au loin.":
+      "Each word has its colour. The next one is already visible.",
+    "Tes pièces sont conservées entre les parties.":
+      "Your coins carry over between runs.",
+    "Une grosse bille écrase plusieurs touches d'un coup : écoute l'accord.":
+      "A big ball hits several keys at once: listen to the chord.",
+    "France": "France", "Italie": "Italy", "Belgique": "Belgium",
+    "Allemagne": "Germany", "Espagne": "Spain", "Portugal": "Portugal",
+    "Pays-Bas": "Netherlands", "Irlande": "Ireland", "Maroc": "Morocco",
+    "Algérie": "Algeria", "Sénégal": "Senegal",
+    "Côte d'Ivoire": "Ivory Coast", "Brésil": "Brazil",
+    "Argentine": "Argentina", "Japon": "Japan", "Corée": "Korea",
+    "Canada": "Canada", "États-Unis": "United States",
+    "Royaume-Uni": "United Kingdom", "Suède": "Sweden", "Suisse": "Switzerland"
+  },
+  es: {
+    "glisse pour diriger. appuie pour sauter.": "desliza para dirigir. toca para saltar.",
+    "MUSIQUE": "MÚSICA", "NIVEAU": "NIVEL", "NIVEAUX SUR": "NIVELES DE",
+    "NIVEAU SUR": "NIVEL DE", "A DEBLOQUER": "BLOQUEADO",
+    "Boutique": "Tienda", "BILLES": "BOLAS", "COLLECTIONS": "COLECCIONES",
+    "GRATUIT": "GRATIS", "DIAMANTS": "DIAMANTES",
+    "ÉQUIPÉ": "EQUIPADO", "UTILISER": "USAR", "CHOISIR": "ELEGIR",
+    "OUVRIR": "ABRIR", "PRIS": "TOMADO", "REGARDER": "VER", "DEMAIN": "MAÑANA",
+    "Cadeau du jour": "Regalo del día",
+    "pièces": "monedas", "diamant": "diamante", "diamants": "diamantes",
+    "Déjà pris — reviens demain": "Ya reclamado — vuelve mañana",
+    "par pub": "por anuncio", "restante": "restante", "restantes": "restantes",
+    "aujourd'hui": "hoy",
+    "Drapeaux du monde": "Banderas del mundo",
+    "débloqué": "desbloqueada", "débloqués": "desbloqueadas", "sur": "de",
+    "MEILLEURE OFFRE": "MEJOR OFERTA",
+    "Achat unique — pas d'abonnement.": "Compra única — sin suscripción.",
+    "PAYER": "PAGAR", "Connexion au paiement...": "Conectando con el pago...",
+    "crédités": "añadidos",
+    "Pays": "Países", "Claviers": "Teclados",
+    "Réglages": "Ajustes", "Son": "Sonido", "Vibration": "Vibración",
+    "Meilleur score": "Mejor puntuación", "Langue": "Idioma",
+    "EFFACER MA PROGRESSION": "BORRAR MI PROGRESO",
+    "TOMBÉ": "CAÍDO", "TOMBE": "CAÍDO", "REUSSI": "SUPERADO",
+    "REPARTIR": "CONTINUAR", "REJOUER": "JUGAR DE NUEVO",
+    "NIVEAU SUIVANT": "NIVEL SIGUIENTE", "REPARTIR ?": "¿CONTINUAR?",
+    "Tu reprends la ou tu es tombe,": "Sigues donde caíste,",
+    "score conserve.": "conservas tu puntuación.",
+    "📺 REGARDER UNE PUB": "📺 VER UN ANUNCIO",
+    "SERIE": "RACHA", "TAILLE": "TAMAÑO", "meilleur :": "mejor:", "combo": "combo",
+    "jackpots": "jackpots", "Sauter": "Saltar",
+    "Niveau precedent": "Nivel anterior", "Niveau suivant": "Nivel siguiente",
+    "Jouer": "Jugar", "Niveau verrouille": "Nivel bloqueado",
+    "Premiers pas": "Primeros pasos", "Au-dessus du vide": "Sobre el vacío",
+    "Coulee de lave": "Colada de lava", "Poussiere d'etoiles": "Polvo de estrellas",
+    "Vents toxiques": "Vientos tóxicos", "Chaos": "Caos",
+    "Craie": "Tiza", "Menthe": "Menta", "Myrtille": "Arándano",
+    "Fraise": "Fresa", "Citron": "Limón", "Lagon": "Laguna",
+    "Appuie n'importe ou pour sauter par-dessus les bombes.":
+      "Toca en cualquier sitio para saltar las bombas.",
+    "Les touches dorées forment un mot : enchaîne-les pour le jackpot.":
+      "Las teclas doradas forman una palabra: encádenalas para el premio.",
+    "Plus la bille grossit, plus chaque touche rapporte.":
+      "Cuanto mayor es la bola, más vale cada tecla.",
+    "En descente tu prends de la vitesse. Anticipe.":
+      "En bajada ganas velocidad. Anticipa.",
+    "Une bombe coûte une vie. Il t'en reste trois.":
+      "Una bomba cuesta una vida. Tienes tres.",
+    "Chaque mot a sa couleur. Le suivant se voit déjà au loin.":
+      "Cada palabra tiene su color. La siguiente ya se ve a lo lejos.",
+    "Tes pièces sont conservées entre les parties.":
+      "Tus monedas se conservan entre partidas.",
+    "Une grosse bille écrase plusieurs touches d'un coup : écoute l'accord.":
+      "Una bola grande pisa varias teclas a la vez: escucha el acorde.",
+    "France": "Francia", "Italie": "Italia", "Belgique": "Bélgica",
+    "Allemagne": "Alemania", "Espagne": "España", "Portugal": "Portugal",
+    "Pays-Bas": "Países Bajos", "Irlande": "Irlanda", "Maroc": "Marruecos",
+    "Algérie": "Argelia", "Sénégal": "Senegal",
+    "Côte d'Ivoire": "Costa de Marfil", "Brésil": "Brasil",
+    "Argentine": "Argentina", "Japon": "Japón", "Corée": "Corea",
+    "Canada": "Canadá", "États-Unis": "Estados Unidos",
+    "Royaume-Uni": "Reino Unido", "Suède": "Suecia", "Suisse": "Suiza"
+  }
+};
+
+function T(fr) {
+  var d = TRAD[SAVE.langue];
+  if (!d) return fr;
+  var v = d[fr];
+  return v === undefined ? fr : v;
+}
+
+/* Les elements marques data-i18n gardent leur texte francais d'origine dans
+   l'attribut : on peut donc retraduire autant de fois qu'on veut sans jamais
+   traduire une traduction. */
+function traduire() {
+  var l = document.querySelectorAll("[data-i18n]");
+  for (var i = 0; i < l.length; i++) {
+    var e = l[i], k = e.getAttribute("data-i18n");
+    if (!k) { k = e.textContent.trim(); e.setAttribute("data-i18n", k); }
+    e.textContent = T(k);
+  }
+  var a = document.querySelectorAll("[data-i18n-aria]");
+  for (var j = 0; j < a.length; j++) {
+    var b = a[j], m = b.getAttribute("data-i18n-aria");
+    if (!m) { m = b.getAttribute("aria-label") || ""; b.setAttribute("data-i18n-aria", m); }
+    b.setAttribute("aria-label", T(m));
+  }
+  document.documentElement.lang = SAVE.langue;
+}
+
 function loadSave() {
   try {
     var raw = localStorage.getItem("thock_save");
@@ -1011,6 +1227,7 @@ function loadSave() {
 }
 function persist() { try { localStorage.setItem("thock_save", JSON.stringify(SAVE)); } catch (e) {} }
 loadSave();
+if (!SAVE.langue) SAVE.langue = langueDuTelephone();
 
 function billeCourante() {
   for (var i = 0; i < BALLS.length; i++) if (BALLS[i].id === SAVE.ball) return BALLS[i];
@@ -1765,7 +1982,7 @@ function pressKeysUnderBall() {
       spawnParts(colX(k2.col), rowZ(k2.row), 20, 46, 0.09);
       flash = Math.max(flash, 0.5);
       if (hotStreak >= 2) {
-        streakEl.innerHTML = "x" + hotStreak + '<span class="sub">SERIE</span>';
+        streakEl.innerHTML = "x" + hotStreak + '<span class="sub">' + T("SERIE") + "</span>";
         streakEl.classList.remove("go"); void streakEl.offsetWidth; streakEl.classList.add("go");
       }
     } else plain += gain;
@@ -2007,11 +2224,12 @@ function gagnerNiveau() {
   if (!SAVE.etoiles) SAVE.etoiles = [];
   if (e > (SAVE.etoiles[niveau] || 0)) { SAVE.etoiles[niveau] = e; persist(); }
   afficherNote(e);
-  document.querySelector("#overPanel .lbl").textContent = "NIVEAU " + (niveau + 1) + " REUSSI";
+  document.querySelector("#overPanel .lbl").textContent =
+    T("NIVEAU") + " " + (niveau + 1) + " " + T("REUSSI");
   $("finalScore").textContent = score;
-  $("finalInfo").textContent = NIVEAUX[niveau].nom + "  ·  combo " + bestCombo;
+  $("finalInfo").textContent = T(NIVEAUX[niveau].nom) + "  ·  " + T("combo") + " " + bestCombo;
   $("earned").textContent = "+" + gagneP;
-  $("bRepartir").textContent = niveau + 1 < NIVEAUX.length ? "NIVEAU SUIVANT" : "REJOUER";
+  $("bRepartir").textContent = T(niveau + 1 < NIVEAUX.length ? "NIVEAU SUIVANT" : "REJOUER");
   overEl.style.display = "flex";
   overEl.classList.remove("hidden");
   var h = document.getElementById("hud"); if (h) h.style.opacity = "0";
@@ -2042,13 +2260,14 @@ function die() {
     var av = document.getElementById("lvlUp");
     if (av) {
       if (montees > 0) {
-        av.textContent = "NIVEAU " + SAVE.level + " !";
+        av.textContent = T("NIVEAU") + " " + SAVE.level + " !";
         av.style.display = "block";
       } else av.style.display = "none";
     }
     document.getElementById("finalScore").textContent = score;
     document.getElementById("finalInfo").textContent =
-      "meilleur : " + best + "   ·   combo " + bestCombo + "   ·   jackpots " + jackpots;
+      T("meilleur :") + " " + best + "   ·   " + T("combo") + " " + bestCombo
+      + "   ·   " + T("jackpots") + " " + jackpots;
     afficherNote(noter());
     // au-dela de 2 reprises on arrete : la partie doit finir
     document.getElementById("bRepartir").style.display = revives >= 2 ? "none" : "block";
@@ -2970,8 +3189,8 @@ function begin() {
   reset();
   playing = true;
   majBoutonSaut();
-  document.querySelector("#overPanel .lbl").textContent = "TOMBE";
-  $("bRepartir").textContent = "REPARTIR";
+  document.querySelector("#overPanel .lbl").textContent = T("TOMBE");
+  $("bRepartir").textContent = T("REPARTIR");
   startEl.classList.add("hidden");
   overEl.classList.add("hidden");
   setTimeout(function () { startEl.style.display = "none"; overEl.style.display = "none"; }, 320);
@@ -3015,7 +3234,7 @@ function ecranChargement(apres) {
   var i = VISUELS.length === 1 ? 0 : (visuelPrec + 1 + ((Math.random() * (VISUELS.length - 1)) | 0)) % VISUELS.length;
   visuelPrec = i;
   loadEl.style.backgroundImage = 'url("' + VISUELS[i] + '")';
-  loadTip.textContent = ASTUCES[(Math.random() * ASTUCES.length) | 0];
+  loadTip.textContent = T(ASTUCES[(Math.random() * ASTUCES.length) | 0]);
   loadBar.style.width = "0%";
   loadPct.textContent = "0%";
   loadEl.classList.add("on");
@@ -3184,9 +3403,11 @@ function majMenuNiveau() {
   var n = Math.min(NIVEAUX.length - 1, SAVE.niveauSel || 0);
   var ouvert = n <= (SAVE.niveauMax || 0);
   var a = $("playNiv"), b = $("playNom"), c = $("progNiv");
-  if (a) a.textContent = "NIVEAU " + (n + 1);
-  if (b) b.textContent = ouvert ? NIVEAUX[n].nom : "A DEBLOQUER";
-  if (c) c.textContent = ((SAVE.niveauMax || 0) + 1) + " NIVEAUX SUR " + NIVEAUX.length;
+  if (a) a.textContent = T("NIVEAU") + " " + (n + 1);
+  if (b) b.textContent = ouvert ? T(NIVEAUX[n].nom) : T("A DEBLOQUER");
+  if (c) { var nb = (SAVE.niveauMax || 0) + 1;
+           c.textContent = nb + " " + T(nb > 1 ? "NIVEAUX SUR" : "NIVEAU SUR")
+                           + " " + NIVEAUX.length; }
 
   var p = $("bPlay");
   if (p) { p.classList.toggle("verrou", !ouvert);
@@ -3223,13 +3444,13 @@ function carte(it, type) {
   var apercu = (type === "k")
     ? '<div class="sw" style="background:repeating-linear-gradient(135deg,hsl(' + it.a.h + ',' + it.a.s + '%,' + it.a.l + '%) 0 13px,hsl(' + it.b.h + ',' + it.b.s + '%,' + it.b.l + '%) 13px 26px)"></div>'
     : '<div class="sw socle"><canvas class="apercu" width="260" height="124" data-bille="' + it.id + '"></canvas></div>';
-  var btn = eq   ? '<button class="act on">ÉQUIPÉ</button>'
-          : poss ? '<button class="act use">UTILISER</button>'
+  var btn = eq   ? '<button class="act on">' + T("ÉQUIPÉ") + '</button>'
+          : poss ? '<button class="act use">' + T("UTILISER") + '</button>'
           : (SAVE.purse >= it.prix
                ? '<button class="act buy">' + PIECE + it.prix + '</button>'
                : '<button class="act no">' + PIECE + it.prix + '</button>');
   return '<div class="card' + (eq ? " eq" : "") + '" data-t="' + type + '" data-id="' + it.id + '">'
-       + apercu + '<div class="nm">' + it.nom + '</div>' + btn + '</div>';
+       + apercu + '<div class="nm">' + T(it.nom) + '</div>' + btn + '</div>';
 }
 
 /* Chaque carte contient un vrai rendu de la bille sur un socle : un aplat de
@@ -3277,28 +3498,31 @@ function majBoutique() {
   $("gridGratuit").innerHTML =
     '<div class="card banniere" data-t="cad" data-id="__cadeau">'
     + '<div class="vign emo">🎁</div>'
-    + '<div class="txt"><div class="nm">Cadeau du jour</div>'
+    + '<div class="txt"><div class="nm">' + T("Cadeau du jour") + '</div>'
     + '<div class="sub">' + (cadeauDispo()
-        ? CADEAU_PIECES + " pièces + " + CADEAU_GEMS + " diamant"
-        : "Déjà pris — reviens demain") + '</div>'
+        ? CADEAU_PIECES + " " + T("pièces") + " + " + CADEAU_GEMS + " " + T("diamant")
+        : T("Déjà pris — reviens demain")) + '</div>'
     + '<button class="act ' + (cadeauDispo() ? "buy" : "no") + '">'
-    + (cadeauDispo() ? "OUVRIR" : "PRIS") + '</button></div></div>'
+    + T(cadeauDispo() ? "OUVRIR" : "PRIS") + '</button></div></div>'
 
     + '<div class="card banniere" data-t="pub" data-id="__pub">'
     + '<div class="vign emo">📺</div>'
-    + '<div class="txt"><div class="nm">' + GEMS_PAR_PUB + ' diamants par pub</div>'
-    + '<div class="sub">' + reste + " restante" + (reste > 1 ? "s" : "") + " aujourd'hui" + '</div>'
+    + '<div class="txt"><div class="nm">' + GEMS_PAR_PUB + " " + T("diamants")
+      + " " + T("par pub") + '</div>'
+    + '<div class="sub">' + reste + " " + T(reste > 1 ? "restantes" : "restante")
+      + " " + T("aujourd'hui") + '</div>'
     + '<button class="act ' + (reste > 0 ? "buy" : "no") + '">'
-    + (reste > 0 ? "REGARDER" : "DEMAIN") + '</button></div></div>';
+    + T(reste > 0 ? "REGARDER" : "DEMAIN") + '</button></div></div>';
 
   var possedes = 0;
   for (var pz2 = 0; pz2 < PAYS.length; pz2++) if (SAVE.balls.indexOf(PAYS[pz2].id) >= 0) possedes++;
   $("gridGlobe").innerHTML =
     '<div class="card banniere" data-t="w" data-id="__globe">'
     + '<canvas class="apercu rond" width="150" height="150" data-bille="__globe"></canvas>'
-    + '<div class="txt"><div class="nm">Drapeaux du monde</div>'
-    + '<div class="sub">' + possedes + " débloqué" + (possedes > 1 ? "s" : "") + " sur " + PAYS.length + '</div>'
-    + '<button class="act buy">CHOISIR</button></div></div>';
+    + '<div class="txt"><div class="nm">' + T("Drapeaux du monde") + '</div>'
+    + '<div class="sub">' + possedes + " " + T(possedes > 1 ? "débloqués" : "débloqué")
+      + " " + T("sur") + " " + PAYS.length + '</div>'
+    + '<button class="act buy">' + T("CHOISIR") + '</button></div></div>';
   $("gridPays").innerHTML = PAYS.map(function (pz) {
     return carte({ id: pz.id, nom: pz.nom, prix: PRIX_PAYS }, "p");
   }).join("");
@@ -3356,6 +3580,7 @@ $("gridKeys").addEventListener("click", clicCarte);
 
 function ouvrir(id) { $(id).classList.add("on");
   if (id === "shop" || id === "pays" || id === "claviers") majBoutique();
+  if (id === "langue") majLangues();
 }
 function fermer(id) { $(id).classList.remove("on"); majBourse(); }
 Array.prototype.forEach.call(["icoGems", "icoPurse", "icoMenuGem", "icoPaysGem", "icoClavGem"], function (nid) {
@@ -3422,6 +3647,33 @@ tap($("bSon"), function () {          // pastille son de l'ecran d'accueil
 iconeSon();
 tap($("bShop"), function () { ouvrir("shop"); });
 tap($("bSet"),  function () { ouvrir("settings"); });
+tap($("bLang"), function () { ouvrir("langue"); });
+
+function majLangues() {
+  var g = $("listeLangues"); if (!g) return;
+  g.innerHTML = LANGUES.map(function (L) {
+    return '<button class="rangLang' + (L.id === SAVE.langue ? " actif" : "")
+      + '" data-lang="' + L.id + '"><span class="code">' + L.id.toUpperCase()
+      + '</span><span class="nom">' + L.nom + '</span></button>';
+  }).join("");
+}
+$("listeLangues").addEventListener("click", function (e) {
+  var b = e.target.closest ? e.target.closest("[data-lang]") : null;
+  if (!b) return;
+  playBois();
+  SAVE.langue = b.getAttribute("data-lang");
+  persist();
+  appliquerLangue();
+});
+
+/* Un changement de langue doit repeindre TOUT : les ecrans statiques par
+   data-i18n, et les grilles construites en JS par leur propre fonction. */
+function appliquerLangue() {
+  traduire();
+  majLangues();
+  majMenuNiveau();
+  if (typeof majBoutique === "function") majBoutique();
+}
 tap($("bAgain"), function () { ecranChargement(begin); });
 /* Un seul bouton REPARTIR qui ouvre le choix : empiler pub + diamants +
    rejouer + menu faisait quatre boutons a l'ecran, c'etait illisible. */
@@ -3433,7 +3685,7 @@ tap($("bAgain"), function () { ecranChargement(begin); });
 var packEnCours = null;
 function ouvrirPaiement(pk) {
   packEnCours = pk;
-  $("payTitre").textContent = pk.n + " diamants";
+  $("payTitre").textContent = pk.n + " " + T("diamants");
   $("payPrix").textContent = pk.eur;
   $("payImg").src = "ui/" + pk.img + ".png";
   $("payEtat").textContent = "";
@@ -3443,13 +3695,13 @@ function ouvrirPaiement(pk) {
 function fermerPaiement() { $("paiement").classList.remove("on"); }
 function validerPaiement() {
   if (!packEnCours) return;
-  $("payEtat").textContent = "Connexion au paiement...";
+  $("payEtat").textContent = T("Connexion au paiement...");
   $("payValider").style.display = "none";
   setTimeout(function () {
     SAVE.gems += packEnCours.n;
     persist(); majBoutique();
     playChord([0, 5, 9, 12], "triangle", 0.5, 0.14);
-    $("payEtat").textContent = "+" + packEnCours.n + " diamants crédités";
+    $("payEtat").textContent = "+" + packEnCours.n + " " + T("diamants") + " " + T("crédités");
     setTimeout(fermerPaiement, 900);
   }, 700);
 }
@@ -3535,6 +3787,7 @@ function retourMenu() {
   lancerDemo();
 }
 majBourse();
+appliquerLangue();
 
 reset();
 
