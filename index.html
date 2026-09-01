@@ -37,9 +37,11 @@
                align-items:center; justify-content:center; font-size:13px; font-weight:900; }
   .chip .val { font-size:21px; font-weight:900; color:#fff; letter-spacing:-.5px;
                text-shadow:0 2px 0 rgba(0,0,0,.4); font-variant-numeric:tabular-nums; }
-  #coinIco { background:none; box-shadow:none; font-size:23px; line-height:1; width:26px; }
-  .purse.gem { border-color:#7fd4ff; }
-  .purse .c { background:none !important; font-size:21px; line-height:1; width:24px; }
+  #coinIco { background:url('ui/k_piece.png') center/contain no-repeat;
+             box-shadow:none; font-size:0; width:26px; height:26px;
+             filter:drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
+  .purse.gem { border-image-source:url('ui/b_barre_vide.png'); }
+  .purse .c { line-height:1; }
   #multChip { border-color:#ffd84d; }
   #lives { display:flex; gap:4px; }
   #lives i { width:19px; height:19px; display:block;
@@ -119,10 +121,11 @@
                    text-overflow:ellipsis; white-space:nowrap; }
   .bourses { display:flex; align-items:center; justify-content:center; gap:9px;
              flex:0 0 auto; }
-  .hdr .purse { padding:5px 11px 5px 8px; border-width:2px; gap:5px; }
+  .hdr .purse { border-width:13px 22px; border-image-width:13px 22px; gap:4px; }
   .hdr .purse b { font-size:15px; }
-  .hdr .purse .c { font-size:18px; width:20px; }
-  .hdr .purse.gem .dia { width:18px; height:18px; vertical-align:-3px; }
+  .hdr .purse .c { width:26px; height:26px; flex:0 0 26px; margin-left:-19px; }
+  .hdr .purse.gem > span:first-child { width:29px; height:26px; flex:0 0 29px;
+                                       margin-left:-21px; }
   .sheet h2 { color:#fff; font-size:23px; font-weight:900; letter-spacing:-.5px;
               text-shadow:0 3px 0 rgba(0,0,0,.35); }
   .sheet .body { flex:1; overflow-y:auto; padding:6px 16px 20px; -webkit-overflow-scrolling:touch; }
@@ -192,13 +195,20 @@
                  background:linear-gradient(180deg,#8fdcff,#2b86e8);
                  box-shadow:inset 0 -3px 0 rgba(0,45,100,.4), inset 0 2px 0 rgba(255,255,255,.45); }
 
-  .purse { display:inline-flex; align-items:center; gap:7px; background:rgba(38,20,8,.62);
-           border:3px solid #ffd84d; border-radius:12px; padding:6px 14px 6px 10px;
-           box-shadow:0 3px 3px rgba(0,0,0,.3), inset 0 2px 4px rgba(0,0,0,.35); }
-  .purse .c { width:22px; height:22px; border-radius:50%; display:flex; align-items:center;
-              justify-content:center; font-size:12px; font-weight:900; color:#6b4405;
-              background:linear-gradient(180deg,#ffe06a,#f0ad13); }
-  .purse b { color:#fff; font-size:17px; font-variant-numeric:tabular-nums; }
+  .purse { display:inline-flex; align-items:center; gap:5px; background:none;
+           border-style:solid; border-color:transparent; border-width:15px 26px;
+           border-image:url('ui/b_barre_vide.png') 46 112 fill / 15px 26px / 0 stretch;
+           padding:0 2px 0 0; position:relative;
+           filter:drop-shadow(0 3px 4px rgba(0,0,0,.34)); }
+  /* L'icone deborde la plaque : c'est ce qui donne le relief du compteur.
+     margin negatif plutot que position absolue, pour que la plaque s'ajuste
+     quand meme a la largeur du nombre. */
+  .purse .c { width:30px; height:30px; margin:-4px 0 -4px -22px; background:none;
+              font-size:0; flex:0 0 30px;
+              background:url('ui/k_piece.png') center/contain no-repeat;
+              filter:drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
+  .purse b { color:#fff5df; font-size:17px; font-variant-numeric:tabular-nums;
+             text-shadow:0 2px 0 rgba(52,16,4,.85); }
 
   .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; margin-top:6px; }
   .card { background:rgba(0,0,0,.26); border:2px solid rgba(255,255,255,.13);
@@ -370,8 +380,14 @@
 
   /* pastille diamant : meme dessin partout, le compteur et les paliers */
   .dia { width:1.05em; height:1.05em; vertical-align:-.16em; margin-right:.12em; }
-  .purse.gem { padding-right:12px; }
-  .purse.gem .dia { width:21px; height:21px; vertical-align:-4px; margin-right:2px; }
+  .purse.gem { padding-right:2px; }
+  .purse.gem .dia { display:none; }
+  /* Le diamant vient lui aussi des assets : l'amas cyan de gem_s, pose comme
+     la piece. Le SVG reste dans le DOM pour les cartes de la boutique. */
+  .purse.gem > span:first-child { width:34px; height:30px; flex:0 0 34px;
+              margin:-4px 0 -4px -24px; display:block;
+              background:url('ui/gem_s.png') center/contain no-repeat;
+              filter:drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
   /* Confinement au format telephone. Doit rester la DERNIERE regle : #hud,
      .sheet et consorts redeclarent inset:0 plus haut, et a specificite egale
      c'est l'ordre source qui gagne. Place avant, le centrage sautait mais le
@@ -403,26 +419,11 @@
                   box-shadow:0 1px 0 #9c4a06, 0 4px 9px rgba(0,0,0,.45),
                              inset 0 3px 0 rgba(255,255,255,.55); }
   @media (prefers-reduced-motion: reduce) { #bSaut { transition:none; } }
-  .act .piece { font-size:13px; vertical-align:-1px; margin-right:2px; }
+  .act .piece { display:inline-block; width:16px; height:16px; vertical-align:-3px;
+                margin-right:4px;
+                background:url('ui/k_piece.png') center/contain no-repeat; }
   /* Selection de niveau. La vignette reprend le degrade du ciel du niveau :
      on voit son ambiance avant d'y entrer, ce qui donne envie d'avancer. */
-  #gridNiv { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; margin-top:6px; }
-  .niv { position:relative; border-radius:18px; overflow:hidden; cursor:pointer;
-         border:2px solid rgba(255,255,255,.14); background:rgba(0,0,0,.26); }
-  .niv .vue { height:78px; position:relative; }
-  .niv .num { position:absolute; top:8px; left:0; right:0; text-align:center;
-              font-size:34px; font-weight:900; color:#fff;
-              text-shadow:0 3px 0 rgba(0,0,0,.42), 0 0 12px rgba(0,0,0,.35); }
-  .niv .bas { padding:8px 10px 10px; }
-  .niv .nm { color:#fff; font-size:12px; font-weight:800; text-align:center;
-             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .niv .sous { color:rgba(255,214,160,.62); font-size:10px; font-weight:700;
-               text-align:center; margin-top:2px; letter-spacing:.5px; }
-  .niv.ouvert { border-color:#ffd84d; box-shadow:0 0 0 1px rgba(255,216,77,.3); }
-  .niv.verrou .vue { filter:grayscale(.85) brightness(.55); }
-  .niv .cadenas { position:absolute; inset:0; display:flex; align-items:center;
-                  justify-content:center; }
-  .niv .cadenas img { width:34px; height:34px; filter:drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
   /* L'interface de jeu appartient a la partie, pas au menu : les pieces, le
      multiplicateur et les coeurs venaient de la demo qui tourne en fond et
      n'y voulaient rien dire. */
@@ -469,6 +470,21 @@
               filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));
               animation:respire 2.4s ease-in-out infinite; }
   .grosPlay:active { transform:translateY(4px) scale(.96); animation:none; }
+  /* Niveau pas encore ouvert : le cadenas remplace la fleche au lieu de griser
+     le bouton. On voit qu'il existe une suite, et pourquoi elle resiste. */
+  .grosPlay.verrou { background-image:url('ui/k_cadenas.png'); animation:none;
+                     filter:hue-rotate(178deg) saturate(1.1) brightness(.97)
+                            drop-shadow(0 5px 6px rgba(0,0,0,.4)); }
+  .grosPlay.verrou:active { transform:translateY(2px) scale(.98); }
+
+  /* Palmares du niveau choisi, juste sous le bouton. Memes etoiles que celles
+     gagnees en fin de partie : le joueur reconnait ce qu'il vise. */
+  #etoilesNiv { display:flex; align-items:center; justify-content:center; gap:3px;
+                height:26px; margin-top:5px; }
+  #etoilesNiv img { width:24px; height:23px;
+                    filter:drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+  #etoilesNiv img:nth-child(2) { width:30px; height:29px; margin:0 1px; }
+  #etoilesNiv.eteint { opacity:.42; }
   @keyframes respire { 0%,100%{transform:scale(1)} 50%{transform:scale(1.055)} }
   @media (prefers-reduced-motion: reduce) { .grosPlay { animation:none; } }
   #playSous { display:flex; flex-direction:column; align-items:center; gap:1px; }
@@ -490,11 +506,13 @@
                     z-index:0; }
   #selNiv .txt { position:relative; z-index:1; padding:0 6px; }
   #selNiv .txt { display:flex; flex-direction:column; align-items:center;
+                 justify-content:flex-start; padding-bottom:9px;
                  gap:0; pointer-events:none; padding-bottom:3px; }
-  #selNiv .txt b { color:#fff5df; font-size:15px; font-weight:900; letter-spacing:.6px;
-                   text-shadow:0 2px 0 rgba(90,45,10,.75); }
-  #selNiv .txt span { color:rgba(255,232,196,.82); font-size:10px; font-weight:800;
-                      letter-spacing:.3px; text-shadow:0 1px 0 rgba(70,35,8,.7); }
+  #selNiv .txt b { color:#fff5df; font-size:16px; font-weight:900; letter-spacing:.6px;
+                   line-height:1; text-shadow:0 2px 0 rgba(90,45,10,.75); }
+  #selNiv .txt span { color:rgba(255,232,196,.85); font-size:10px; font-weight:800;
+                      letter-spacing:.3px; line-height:1; margin-top:5px;
+                      text-shadow:0 1px 0 rgba(70,35,8,.7); }
   #selNiv .fleche { position:absolute; top:0; bottom:0; width:38%; z-index:2;
                     background:none; border:none; cursor:pointer; padding:0;
                     background-size:auto 100%; background-repeat:no-repeat; }
@@ -532,7 +550,7 @@
 
 <div id="hud">
   <div id="topbar">
-    <div class="chip"><div class="ico" id="coinIco">🪙</div><div class="val" id="score" style="transform: scale(1.00533);">3300</div></div>
+    <div class="chip"><div class="ico" id="coinIco"></div><div class="val" id="score" style="transform: scale(1.00533);">3300</div></div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
       <div class="chip" id="multChip"><div class="val" id="mult" style="color: rgb(255, 122, 217);">x5</div></div>
       <div id="lives"></div>
@@ -584,7 +602,6 @@
 <div id="start" class="screen">
   <div class="coinsIco gauche">
     <button class="icoKit" id="bSet"  style="background-image:url('ui/b_reglages.png')"></button>
-    <button class="icoKit" id="bNiv"  style="background-image:url('ui/b_niveaux.png')"></button>
   </div>
   <div class="coinsIco droite">
     <button class="icoKit" id="bShop" style="background-image:url('ui/b_boutique.png')"></button>
@@ -603,11 +620,12 @@
   <div id="progNiv">1 NIVEAU SUR 6</div>
   <div class="bourses" id="boursesMenu">
     <div class="purse gem"><span id="icoMenuGem"></span><b id="gemsMenu">0</b></div>
-    <div class="purse"><div class="c">🪙</div><b id="purseMenu">0</b></div>
+    <div class="purse"><div class="c"></div><b id="purseMenu">0</b></div>
   </div>
 
   <div class="zonePlay">
     <button id="bPlay" class="grosPlay"></button>
+    <div id="etoilesNiv"></div>
 
     <div id="selNiv">
       <button class="fleche g" id="nivMoins" aria-label="Niveau precedent"></button>
@@ -631,7 +649,7 @@
     <h2>Boutique</h2>
     <div class="bourses">
       <div class="purse gem"><span id="icoPurse"></span><b id="gemsShop">0</b></div>
-      <div class="purse"><div class="c">🪙</div><b id="purseShop">29357</b></div>
+      <div class="purse"><div class="c"></div><b id="purseShop">29357</b></div>
     </div>
   </div>
   <div class="body">
@@ -647,24 +665,13 @@
   </div>
 </div>
 
-<div id="niveaux" class="sheet">
-  <div class="hdr">
-    <button class="rnd btnIco" data-close="niveaux">←</button>
-    <h2>Niveaux</h2>
-    <div class="bourses">
-      <div class="purse gem"><span id="icoNivGem"></span><b id="gemsNiv">0</b></div>
-    </div>
-  </div>
-  <div class="body"><div id="gridNiv"></div></div>
-</div>
-
 <div id="pays" class="sheet">
   <div class="hdr">
     <button class="rnd btnIco" data-close="pays">←</button>
     <h2>Pays</h2>
     <div class="bourses">
       <div class="purse gem"><span id="icoPaysGem"></span><b id="gemsPays">0</b></div>
-      <div class="purse"><div class="c">🪙</div><b id="pursePays">0</b></div>
+      <div class="purse"><div class="c"></div><b id="pursePays">0</b></div>
     </div>
   </div>
   <div class="body">
@@ -678,7 +685,7 @@
     <h2>Claviers</h2>
     <div class="bourses">
       <div class="purse gem"><span id="icoClavGem"></span><b id="gemsClav">0</b></div>
-      <div class="purse"><div class="c">🪙</div><b id="purseClav">0</b></div>
+      <div class="purse"><div class="c"></div><b id="purseClav">0</b></div>
     </div>
   </div>
   <div class="body">
@@ -711,7 +718,7 @@
     <div class="xpbar"><div class="xpfill" id="lvlFillFin" style="width: 53.8095%;"></div></div>
   </div>
   <p id="finalInfo">meilleur : 27228   ·   combo 95   ·   jackpots 0</p>
-  <div style="margin:16px 0 20px" class="purse"><div class="c">🪙</div><b id="earned">+143</b></div>
+  <div style="margin:16px 0 20px" class="purse"><div class="c"></div><b id="earned">+143</b></div>
   <button class="rnd btnBig" id="bRepartir">REPARTIR</button>
   <button class="rnd btnBig alt" id="bAgain">REJOUER</button>
   <button class="rnd btnIco retour" id="bMenu" style="margin-top:6px"></button>
@@ -930,7 +937,8 @@ var KEYSETS = [
 
 var SAVE = { purse:0, balls:["blanc"], keys:["caramel"], ball:"blanc", key:"caramel",
              snd:true, vib:true, level:1, xp:0, gems:3,
-             jourCadeau:"", jourPubs:"", nbPubs:0, niveauMax:0, niveauSel:0, vol:0.7 };
+             jourCadeau:"", jourPubs:"", nbPubs:0, niveauMax:0, niveauSel:0, vol:0.7,
+             etoiles:[] };
 
 /* Diamants : monnaie rare, gagnee aux paliers de niveau ou achetee avec des
    pieces. Elle ne sert QU'A reprendre une partie, ce qui lui donne une valeur
@@ -1495,6 +1503,26 @@ var NIVEAUX = [
    fois par bande de sol, soit une trentaine de fois. */
 var themeCache = null, themeImage = -1;
 
+/* Couleur de brume : le 2e arret du ciel, eclairci vers le blanc. Un ciel
+   sombre donne une brume sombre, sinon le halo trahirait la nuit. */
+var brumeCache = {};
+function teinteBrume(ciel) {
+  var c = ciel[1];
+  if (brumeCache[c]) return brumeCache[c];
+  var v, r, g, b;
+  if (c.charAt(0) === "#") {
+    v = parseInt(c.slice(1), 16); r = v >> 16 & 255; g = v >> 8 & 255; b = v & 255;
+  } else {                                  // hsl() du niveau chaos
+    var d = document.createElement("canvas").getContext("2d");
+    d.fillStyle = c; d.fillRect(0, 0, 1, 1);
+    var q = d.getImageData(0, 0, 1, 1).data; r = q[0]; g = q[1]; b = q[2];
+  }
+  function m(x) { return Math.round(x + (255 - x) * 0.22); }
+  var out = m(r) + "," + m(g) + "," + m(b);
+  brumeCache[c] = out;
+  return out;
+}
+
 function theme() {
   var N = NIVEAUX[niveau] || NIVEAUX[0];
   if (!N.chaos) return N;
@@ -1970,7 +1998,10 @@ function gagnerNiveau() {
   playChord([0, 4, 7, 12, 16], "triangle", 0.7, 0.14);
   if (SAVE.vib && navigator.vibrate) navigator.vibrate([25, 50, 25, 50, 60]);
 
-  afficherNote(3);
+  var e = 1 + (lives >= 2 ? 1 : 0) + (lives >= 3 ? 1 : 0);
+  if (!SAVE.etoiles) SAVE.etoiles = [];
+  if (e > (SAVE.etoiles[niveau] || 0)) { SAVE.etoiles[niveau] = e; persist(); }
+  afficherNote(e);
   document.querySelector("#overPanel .lbl").textContent = "NIVEAU " + (niveau + 1) + " REUSSI";
   $("finalScore").textContent = score;
   $("finalInfo").textContent = NIVEAUX[niveau].nom + "  ·  combo " + bestCombo;
@@ -2816,10 +2847,14 @@ function frame(now) {
   /* Fondu de distance. Sans lui, une touche a 8 rangees est aussi nette et
      contrastee qu'une touche sous la bille : l'oeil ne sait plus ou regarder,
      et c'est CA qui donnait l'impression de brouillon. */
+  /* La brume prend la couleur du ciel du niveau. Codee en creme, elle
+     recouvrait le tiers haut de l'ecran a 95% : le degrade de ciel etait
+     bien peint mais invisible, et tous les niveaux se ressemblaient. */
+  var CF = teinteBrume(theme().ciel);
   var fog = ctx.createLinearGradient(0, HORIZON - H * 0.05, 0, HORIZON + H * 0.30);
-  fog.addColorStop(0, "rgba(233,223,208,.95)");
-  fog.addColorStop(0.45, "rgba(226,212,192,.50)");
-  fog.addColorStop(1, "rgba(220,205,185,0)");
+  fog.addColorStop(0, "rgba(" + CF + ",.95)");
+  fog.addColorStop(0.45, "rgba(" + CF + ",.50)");
+  fog.addColorStop(1, "rgba(" + CF + ",0)");
   ctx.fillStyle = fog;
   ctx.fillRect(0, 0, W, HORIZON + H * 0.32);
 
@@ -3101,7 +3136,7 @@ var ICO_DIAMANT =
    borne la largeur du compteur quel que soit le montant. */
 /* Les prix affichaient "600 $" alors que la monnaie du jeu est la piece :
    incoherent avec la bourse, qui montre une piece partout ailleurs. */
-var PIECE = '<span class="piece">🪙</span> ';
+var PIECE = '<span class="piece"></span>';
 
 function formatNombre(n) {
   if (n < 10000) return String(n);
@@ -3131,9 +3166,8 @@ function appliquerVolume() {
 }
 
 function changerNiveau(d) {
-  var max = SAVE.niveauMax || 0;
   var n = (SAVE.niveauSel || 0) + d;
-  if (n < 0 || n > max) { playHurt(); return; }
+  if (n < 0 || n >= NIVEAUX.length) { playHurt(); return; }
   SAVE.niveauSel = n; persist();
   playBois();
   majMenuNiveau();
@@ -3142,18 +3176,30 @@ function changerNiveau(d) {
 
 function majMenuNiveau() {
   var n = Math.min(NIVEAUX.length - 1, SAVE.niveauSel || 0);
+  var ouvert = n <= (SAVE.niveauMax || 0);
   var a = $("playNiv"), b = $("playNom"), c = $("progNiv");
   if (a) a.textContent = "NIVEAU " + (n + 1);
-  if (b) b.textContent = NIVEAUX[n].nom;
+  if (b) b.textContent = ouvert ? NIVEAUX[n].nom : "A DEBLOQUER";
   if (c) c.textContent = ((SAVE.niveauMax || 0) + 1) + " NIVEAUX SUR " + NIVEAUX.length;
-  var sel = $("selNiv");
-  if (sel) sel.classList.toggle("bloque", (SAVE.niveauMax || 0) === 0);
+
+  var p = $("bPlay");
+  if (p) { p.classList.toggle("verrou", !ouvert);
+           p.setAttribute("aria-label", ouvert ? "Jouer" : "Niveau verrouille"); }
+
+  var e = $("etoilesNiv");
+  if (e) {
+    var g = (SAVE.etoiles && SAVE.etoiles[n]) || 0, h = "";
+    for (var i = 0; i < 3; i++)
+      h += '<img src="ui/etoile_' + (ouvert && i < g ? "pleine" : "vide") + '.png" alt="">';
+    e.innerHTML = h;
+    e.classList.toggle("eteint", !ouvert || g === 0);
+  }
 }
 
 function majBourse() {
   majMenuNiveau();
   appliquerVolume();
-  ["gemsShop", "gemsMenu", "gemsPays", "gemsClav"].forEach(function (nid) {
+  ["gemsShop", "gemsMenu", "gemsPays", "gemsClav", "gemsNiv"].forEach(function (nid) {
     var n = $(nid); if (n) n.textContent = formatNombre(SAVE.gems);
   });
   ["gemMenu","gemShop"].forEach(function (id) { var e=$(id); if(e) e.textContent=SAVE.gems; });
@@ -3209,24 +3255,6 @@ function peindreApercus() {
     g2.beginPath(); g2.ellipse(cx2, cy2 + R2 + 8, R2 * 0.92, R2 * 0.22, 0, 0, Math.PI * 2); g2.fill();
     peindreBille(g2, cx2, cy2, R2, bille, bille.flag ? 0 : 0.5, bille.flag ? 0 : 0.9, 0);
   }
-}
-
-function majNiveaux() {
-  var g = $("gridNiv"); if (!g) return;
-  var max = SAVE.niveauMax || 0;
-  g.innerHTML = NIVEAUX.map(function (N, i) {
-    var ouvert = i <= max;
-    var cl = "niv" + (ouvert ? "" : " verrou") + (i === (SAVE.niveauSel || 0) ? " ouvert" : "");
-    return '<div class="' + cl + '" data-n="' + i + '">'
-      + '<div class="vue" style="background:linear-gradient(180deg,' + N.ciel[0] + ' 0%,'
-        + N.ciel[2] + ' 55%,' + N.ciel[4] + ' 100%)">'
-      + '<div class="num">' + (i + 1) + '</div>'
-      + (ouvert ? "" : '<div class="cadenas"><img src="ui/ico_cadenas.png" alt=""></div>')
-      + '</div>'
-      + '<div class="bas"><div class="nm">' + N.nom + '</div>'
-      + '<div class="sous">' + (ouvert ? N.rangees + " RANGEES" : "VERROUILLE") + '</div></div></div>';
-  }).join("");
-  var ng = $("gemsNiv"); if (ng) ng.textContent = formatNombre(SAVE.gems);
 }
 
 function majBoutique() {
@@ -3318,22 +3346,13 @@ $("gridGlobe").addEventListener("click", clicCarte);
 $("gridClaviers").addEventListener("click", clicCarte);
 $("gridGratuit").addEventListener("click", clicCarte);
 
-$("gridNiv").addEventListener("click", function (e) {
-  var c = e.target.closest ? e.target.closest(".niv") : null;
-  if (!c || c.classList.contains("verrou")) { playHurt(); return; }
-  playBois();
-  SAVE.niveauSel = parseInt(c.getAttribute("data-n"), 10) || 0;
-  persist();
-  fermer("niveaux");
-  ecranChargement(begin);
-});
 $("gridKeys").addEventListener("click", clicCarte);
 
 function ouvrir(id) { $(id).classList.add("on");
   if (id === "shop" || id === "pays" || id === "claviers") majBoutique();
-  if (id === "niveaux") majNiveaux(); }
+}
 function fermer(id) { $(id).classList.remove("on"); majBourse(); }
-Array.prototype.forEach.call(["icoGems", "icoPurse", "icoMenuGem", "icoPaysGem", "icoClavGem", "icoNivGem"], function (nid) {
+Array.prototype.forEach.call(["icoGems", "icoPurse", "icoMenuGem", "icoPaysGem", "icoClavGem"], function (nid) {
   var n = $(nid); if (n) n.innerHTML = ICO_DIAMANT;
 });
 Array.prototype.forEach.call(document.querySelectorAll("[data-close]"), function (b) {
@@ -3361,8 +3380,10 @@ tap($("bWipe"), function () {
   persist(); majBoutique(); majBourse();
 });
 
-tap($("bPlay"), function () { ecranChargement(begin); });
-tap($("bNiv"), function () { ouvrir("niveaux"); });
+tap($("bPlay"), function () {
+  if ((SAVE.niveauSel || 0) > (SAVE.niveauMax || 0)) { playHurt(); return; }
+  ecranChargement(begin);
+});
 tap($("nivMoins"), function () { changerNiveau(-1); });
 tap($("nivPlus"),  function () { changerNiveau(1); });
 
@@ -3514,8 +3535,9 @@ reset();
 // demo d'accueil
 function lancerDemo() {
   initAudio();
+  configNiveau(SAVE.niveauSel || 0);   // AVANT reset : ensureRows() lit `niveau`
   reset();
-  configNiveau(SAVE.niveauSel || 0); finRangee = 0;   // decor du niveau choisi, sans fin
+  finRangee = 0;                        // decor du niveau choisi, sans fin
   demo = true; playing = true;
   majBoutonSaut();
   if (master) master.gain.value = 0;      // muet tant qu'on n'a pas joue
